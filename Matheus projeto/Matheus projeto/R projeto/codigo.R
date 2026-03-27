@@ -1,0 +1,205 @@
+
+tinytex::install_tinytex()
+install.packages('deflateBR')
+
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+# 1. Nome do ficheiro (Confirma se fizeste o UPLOAD da versão nova para o Cloud)
+nome_arq <- "cepea-consulta-20260320091531.csv"
+
+# 2. Leitura simples
+# read.csv2 já espera ponto e vírgula como separador e vírgula como decimal
+dados_milho <- read.csv2(nome_arq, 
+                         skip = 4, 
+                         header = FALSE)
+
+# 3. Limpeza
+df_limpo <- dados_milho %>%
+  rename(mes_ano = V1, preco = V2) %>%
+  mutate(
+    data = my(mes_ano) # Converte "01/2023" em data
+  ) %>%
+  filter(!is.na(data), !is.na(preco))
+
+# 4. Gráfico
+ggplot(df_limpo, aes(x = data, y = preco)) +
+  geom_line(color = "darkgreen", size = 1) +
+  geom_point(color = "orange") +
+  scale_x_date(date_labels = "%m/%y", date_breaks = "3 months") +
+  labs(title = "Preço do Milho CEPEA - UTF-8",
+       x = "Período", y = "R$/Saca") +
+  theme_minimal()
+
+
+#$##################
+
+
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(lubridate)
+library(urca)      # Testes de Raiz Unitária
+library(forecast)  # Modelos ARIMA e Previsão
+
+# 1. CARGA E LIMPEZA (Garantindo que o preço seja numérico)
+nome_arq <- "cepea-consulta-20260320091531.csv"
+dados_brutos <- read.csv2(nome_arq, skip = 4, header = FALSE)
+
+df_limpo <- dados_brutos %>%
+  rename(mes_ano = V1, preco = V2) %>%
+  mutate(
+    data = my(mes_ano),
+    preco = as.numeric(preco) # Garante que o log() funcione
+  ) %>%
+  filter(!is.na(data), !is.na(preco))
+
+# 2. CRIAR SÉRIE TEMPORAL E LOG (Usando o df_limpo correto)
+# Note: Usamos df_limpo$preco agora
+log_milho <- ts(log(df_limpo$preco), frequency = 12, 
+                start = c(year(min(df_limpo$data)), month(min(df_limpo$data))))
+
+# 3. TESTES DE RAIZ UNITÁRIA (Dickey-Fuller - Os 3 modelos que você usa)
+# Modelo 1: Sem intercepto e sem tendência
+dickey1 <- ur.df(log_milho, type = "none", lags = 0)
+summary(dickey1)
+
+# Modelo 2: Com intercepto (drift)
+dickey2 <- ur.df(log_milho, type = "drift", lags = 0)
+summary(dickey2)
+
+# Modelo 3: Com intercepto e tendência
+dickey3 <- ur.df(log_milho, type = "trend", lags = 0)
+summary(dickey3)
+
+# 4. IDENTIFICAÇÃO (FAC e FAPC)
+par(mfrow=c(1,2))
+acf(log_milho, lag.max = 36, main="FAC Log Milho", col="red")
+pacf(log_milho, lag.max = 36, main="FAPC Log Milho", col="red")
+par(mfrow=c(1,1))
+
+# 5. TESTES DE AUTOCORRELAÇÃO (Ljung-Box)
+Box.test(log_milho, lag = 1, type = "Ljung-Box")
+Box.test(log_milho, lag = 12, type = "Ljung-Box")
+
+# 6. ESTIMAÇÃO DO SEU MODELO ESPECÍFICO ARIMA(1,1,3)
+Arima113 <- Arima(log_milho, order = c(1, 1, 3), method = "ML")
+print("--- Coeficientes Arima 113 ---")
+print(Arima113$coef)
+
+# Diagnóstico dos resíduos (O gráfico que você pediu)
+tsdiag(Arima113)
+
+# 7. ACURÁCIA DO MODELO
+accuracy(Arima113)
+
+# 8. Gerar a previsão para os próximos 6 meses (h = 6)
+# Usamos a função forecast para facilitar a plotagem gráfica
+previsao_grafico <- forecast(Arima113, h = 6)
+
+# 9. Plotar o gráfico da série em LOG (Previsão do modelo)
+plot(previsao_grafico, 
+     main = "Previsão do Preço do Milho - Modelo ARIMA(1,1,3)",
+     xlab = "Anos", 
+     ylab = "Preço (em Log)",
+     col = "black", 
+     fcol = "blue", # Cor da linha da previsão
+     shadecols = "lightblue") # Cor da área de incerteza
+
+
+###########################
+
+
+library(dplyr)
+library(lubridate)
+
+# 1. TRATANDO O FUTURO (Que está decrescente: 2026 -> 2023)
+df_futuro <- read.csv("Dados Históricos - Milho Chicago Futuros.csv", sep=",", dec=",") %>%
+  mutate(data = dmy(Data), 
+         preco_futuro = as.numeric(Último)) %>%
+  select(data, preco_futuro) %>%
+  arrange(data) # <--- ISSO COLOCA EM ORDEM CRONOLÓGICA (2023 -> 2026)
+
+# 2. TRATANDO O SPOT (Que já está 2023 -> 2026, mas vamos garantir)
+# (Assumindo que df_limpo é o que criamos do Cepea anteriormente)
+df_spot <- df_limpo %>%
+  select(data, preco) %>%
+  arrange(data)
+
+# 3. UNIÃO PERFEITA (O Join ignora a ordem das linhas e busca a data igual)
+df_analise <- df_spot %>%
+  inner_join(df_futuro, by = "data") %>%
+  mutate(
+    base = preco - preco_futuro,
+    retorno_spot = log(preco / lag(preco)),
+    retorno_futuro = log(preco_futuro / lag(preco_futuro))
+  )
+
+# 4. VERIFICAÇÃO
+print("--- Primeiras linhas alinhadas ---")
+print(head(df_analise))
+
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+# 1. Nome do ficheiro (Confirma se o upload foi feito)
+nome_arq_futuro <- "Dados Históricos - Milho Chicago Futuros.csv"
+
+# 2. Leitura e Limpeza (Tratando a inversão de datas e conversão numérica)
+df_futuro_limpo <- read.csv(nome_arq_futuro, sep = ",", dec = ",") %>%
+  mutate(
+    # Converte a coluna 'Data' para o formato Date do R
+    data = dmy(Data), 
+    # Garante que o preço seja numérico (Último é o nome da coluna no Investing)
+    preco = as.numeric(Último)
+  ) %>%
+  # Remove linhas com falha na conversão e ordena cronologicamente
+  filter(!is.na(data), !is.na(preco)) %>%
+  arrange(data)
+
+# 3. Gráfico (Seguindo o estilo do primeiro código)
+ggplot(df_futuro_limpo, aes(x = data, y = preco)) +
+  geom_line(color = "darkblue", size = 1) +  # Mudei para azul para diferenciar do Spot
+  geom_point(color = "red", size = 1) +      # Pontos em vermelho para destaque
+  scale_x_date(date_labels = "%m/%y", date_breaks = "3 months") +
+  labs(
+    title = "Preço do Milho - Chicago Futuros",
+    subtitle = "Série Histórica (Ordenada Cronologicamente)",
+    x = "Período", 
+    y = "Preço (USD/Bushel ou Moeda do Arquivo)"
+  ) +
+  theme_minimal()
+
+######################
+#deflacionando o arquivo
+
+library(dplyr)
+library(lubridate)
+library(deflateBR)
+
+# Carga
+df <- read.csv2("cepea-consulta-20260325022533.csv", skip = 4, header = FALSE) %>%
+  rename(mes_ano = V1, preco_nominal = V2) %>%
+  mutate(
+    data = floor_date(my(mes_ano), "month"),
+    preco_nominal = as.numeric(preco_nominal)
+  ) %>%
+  filter(!is.na(data))
+
+# Deflação (Base Dez/2024)
+# Se der erro aqui, é sua internet ou o servidor do IBGE fora do ar
+df_real <- df %>%
+  mutate(preco_real = deflate(preco_nominal, 
+                              nominal_dates = data, 
+                              real_date = '2024-12', 
+                              index = 'ipca'))
+
+# Salvar o arquivo "limpo" para o Quarto usar
+write.csv(df_real, "milho_pronto.csv", row.names = FALSE)
+
+# CHECK: Se o comando abaixo mostrar números, deu certo!
+summary(df_real$preco_real)

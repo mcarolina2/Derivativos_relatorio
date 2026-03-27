@@ -1,0 +1,392 @@
+---
+title: "Análise de Risco de Base e Hedge — Commodities"
+subtitle: "Soja | Milho | Café | Boi Gordo"
+author: "Análise Quantitativa"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Sumário"
+    theme: flatly
+    code-fold: true
+    self-contained: true
+execute:
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r setup}
+# ===========================================================
+# PACOTES
+# ===========================================================
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(patchwork)
+
+options(scipen = 999999)
+
+# ===========================================================
+# FUNÇÃO GENÉRICA DE LEITURA E CÁLCULO
+# ===========================================================
+# Lê um arquivo CSV no formato padrão das planilhas e
+# recalcula todas as colunas derivadas a partir de SPOT e FUT.
+#
+# Colunas presentes nos arquivos:
+#   Data | SPOT | FUT Invest | Base | ENTRAGA_V | SAÍDA_V |
+#   RESULTADO_V | 450V | ENTRAGA_C | SAÍDA_C | RESULTADO_C | 450C
+#
+# Lógica de recálculo (hedge diário — marcação a mercado):
+#   Base          = SPOT - FUT_Invest
+#
+#   Para Venda (Short Hedge / Hedge do Vendedor):
+#     ENTRAGA_V[t] = FUT[t-1]   (entrada = preço futuro do dia anterior)
+#     SAÍDA_V[t]   = FUT[t]     (saída   = preço futuro do dia corrente)
+#     RESULTADO_V  = ENTRAGA_V - SAÍDA_V    (lucro se FUT caiu)
+#     R$_450V      = RESULTADO_V × 450      (resultado financeiro — 1 contrato)
+#
+#   Para Compra (Long Hedge / Hedge do Comprador):
+#     ENTRAGA_C[t] = FUT[t-1]
+#     SAÍDA_C[t]   = FUT[t]
+#     RESULTADO_C  = SAÍDA_C - ENTRAGA_C    (lucro se FUT subiu)
+#     R$_450C      = RESULTADO_C × 450
+#
+# Nota: Os arquivos de Soja e Milho armazenam SPOT nas colunas
+# ENTRAGA/SAÍDA (e.g. hedge no físico). O script recalcula usando
+# FUT, que é o padrão teórico do hedge com derivativos.
+# ===========================================================
+
+ler_commodity <- function(caminho, nome_commodity) {
+
+  # --- 1. Leitura bruta ---
+  df_raw <- read.csv(
+    caminho,
+    skip    = 1,          # pula a 1ª linha vazia
+    header  = TRUE,
+    sep     = ",",
+    dec     = ".",
+    stringsAsFactors = FALSE,
+    fileEncoding = "UTF-8"
+  )
+
+  # Padroniza nomes de colunas (remove espaços, acentos, caracteres especiais)
+  colnames(df_raw) <- c(
+    "Data", "SPOT", "FUT_Invest", "Base_orig",
+    "ENTRAGA_V_orig", "SAIDA_V_orig", "RESULTADO_V_orig", "R450V_orig",
+    "ENTRAGA_C_orig", "SAIDA_C_orig", "RESULTADO_C_orig", "R450C_orig"
+  )
+
+  # --- 2. Limpeza: remove linhas sem data (totalizadores) ---
+  df <- df_raw %>%
+    filter(!is.na(Data) & Data != "" & grepl("^\\d{2}/\\d{2}/\\d{4}$", trimws(Data))) %>%
+    mutate(
+      Data       = dmy(trimws(Data)),
+      SPOT       = as.numeric(gsub(",", ".", as.character(SPOT))),
+      FUT_Invest = as.numeric(gsub(",", ".", as.character(FUT_Invest)))
+    ) %>%
+    filter(!is.na(SPOT), !is.na(FUT_Invest)) %>%
+    arrange(Data)
+
+  # --- 3. Recálculo das colunas derivadas ---
+  df <- df %>%
+    mutate(
+      # Base (risco de base)
+      Base = SPOT - FUT_Invest,
+
+      # ── HEDGE DE VENDA (Short Hedge — produtor/exportador) ──
+      # Entrada no futuro: preço do dia anterior (lag 1)
+      ENTRAGA_V  = lag(FUT_Invest, 1),
+      # Saída no futuro: preço do dia corrente
+      SAIDA_V    = FUT_Invest,
+      # Resultado diário: ganhou se o futuro caiu
+      RESULTADO_V = ENTRAGA_V - SAIDA_V,
+      # Resultado financeiro: 1 contrato padrão = 450 sacas
+      R450_V      = RESULTADO_V * 450,
+      # Resultado financeiro acumulado
+      R450_V_acum = cumsum(ifelse(is.na(R450_V), 0, R450_V)),
+
+      # ── HEDGE DE COMPRA (Long Hedge — indústria/importador) ──
+      ENTRAGA_C  = lag(FUT_Invest, 1),
+      SAIDA_C    = FUT_Invest,
+      RESULTADO_C = SAIDA_C - ENTRAGA_C,
+      R450_C      = RESULTADO_C * 450,
+      R450_C_acum = cumsum(ifelse(is.na(R450_C), 0, R450_C)),
+
+      # Commodity label
+      Commodity = nome_commodity
+    )
+
+  return(df)
+}
+
+# ===========================================================
+# CARGA DOS 4 ARQUIVOS
+# ===========================================================
+# Ajuste os caminhos abaixo conforme o local dos seus CSVs
+df_soja  <- ler_commodity("Dados_soja - Dados (1).csv",  "Soja")
+df_milho <- ler_commodity("Dados_Milho - Dados (1).csv", "Milho")
+df_cafe  <- ler_commodity("Dados Café - Café.csv",       "Café")
+df_boi   <- ler_commodity("Dados_boi - boi.csv",         "Boi Gordo")
+
+# Base consolidada (todas as commodities empilhadas)
+df_all <- bind_rows(df_soja, df_milho, df_cafe, df_boi) %>%
+  mutate(Commodity = factor(Commodity, levels = c("Soja","Milho","Café","Boi Gordo")))
+```
+
+------------------------------------------------------------------------
+
+# 1 · Visão Geral dos Dados
+
+```{r tabela_head}
+# Exibe as primeiras linhas de cada commodity
+df_all %>%
+  group_by(Commodity) %>%
+  slice_head(n = 5) %>%
+  select(Commodity, Data, SPOT, FUT_Invest, Base, RESULTADO_V, R450_V, RESULTADO_C, R450_C) %>%
+  kable(
+    digits  = 2,
+    caption = "Primeiras observações por commodity (colunas recalculadas)",
+    col.names = c("Commodity","Data","SPOT","FUT Invest","Base",
+                  "Res. Venda","R$ Venda","Res. Compra","R$ Compra")
+  ) %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE) %>%
+  collapse_rows(columns = 1, valign = "top")
+```
+
+------------------------------------------------------------------------
+
+# 2 · SPOT vs FUT Invest
+
+> Comparação entre o preço à vista (CEPEA) e o preço futuro (Investing.com) para cada commodity.
+
+```{r grafico_spot_fut, fig.width=12, fig.height=8}
+df_all %>%
+  select(Commodity, Data, SPOT, FUT_Invest) %>%
+  pivot_longer(cols = c(SPOT, FUT_Invest), names_to = "Serie", values_to = "Preco") %>%
+  mutate(Serie = recode(Serie, "SPOT" = "SPOT (CEPEA)", "FUT_Invest" = "FUT Invest")) %>%
+  ggplot(aes(x = Data, y = Preco, color = Serie)) +
+  geom_line(linewidth = 0.8) +
+  scale_color_manual(values = c("SPOT (CEPEA)" = "#2ecc71", "FUT Invest" = "#3498db")) +
+  facet_wrap(~ Commodity, scales = "free", ncol = 2) +
+  labs(
+    title   = "SPOT vs FUT Invest por Commodity",
+    x       = NULL,
+    y       = "R$ / Saca (ou R$ / @)",
+    color   = NULL
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top", strip.text = element_text(face = "bold"))
+```
+
+------------------------------------------------------------------------
+
+# 3 · Risco de Base
+
+> **Base = SPOT − FUT Invest**.\
+> Base positiva → físico valorizado sobre o futuro (backwardation).\
+> Base negativa → futuro acima do físico (contango).
+
+```{r grafico_base, fig.width=12, fig.height=8}
+df_all %>%
+  ggplot(aes(x = Data, y = Base)) +
+  geom_area(aes(fill = Commodity), alpha = 0.25, show.legend = FALSE) +
+  geom_line(aes(color = Commodity), linewidth = 0.8, show.legend = FALSE) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  scale_fill_manual(values  = c("Soja" = "#e74c3c","Milho" = "#f39c12",
+                                "Café" = "#8e44ad","Boi Gordo" = "#2980b9")) +
+  scale_color_manual(values = c("Soja" = "#e74c3c","Milho" = "#f39c12",
+                                "Café" = "#8e44ad","Boi Gordo" = "#2980b9")) +
+  facet_wrap(~ Commodity, scales = "free_y", ncol = 2) +
+  labs(
+    title = "Risco de Base por Commodity",
+    subtitle = "Base = SPOT − FUT Invest",
+    x = NULL, y = "Base (R$)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+------------------------------------------------------------------------
+
+# 4 · Estatísticas do Risco de Base
+
+```{r tabela_base_stats}
+df_all %>%
+  filter(!is.na(Base)) %>%
+  group_by(Commodity) %>%
+  summarise(
+    N          = n(),
+    Média      = mean(Base),
+    `Desvio P.`= sd(Base),
+    `CV (%)`   = (sd(Base) / abs(mean(Base))) * 100,
+    Mínimo     = min(Base),
+    Máximo     = max(Base),
+    Amplitude  = max(Base) - min(Base),
+    `Base > 0` = paste0(round(mean(Base > 0) * 100, 1), "%")
+  ) %>%
+  kable(
+    digits  = 3,
+    caption = "Estatísticas descritivas da Base por commodity"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE)
+```
+
+------------------------------------------------------------------------
+
+# 5 · Resultados do Hedge
+
+## 5.1 · Resultado Diário (R\$/contrato de 450 sacas)
+
+```{r grafico_resultado_diario, fig.width=12, fig.height=8}
+df_all %>%
+  filter(!is.na(R450_V)) %>%
+  select(Commodity, Data, R450_V, R450_C) %>%
+  pivot_longer(cols = c(R450_V, R450_C), names_to = "Posicao", values_to = "Resultado") %>%
+  mutate(Posicao = recode(Posicao,
+                          "R450_V" = "Venda (Short Hedge)",
+                          "R450_C" = "Compra (Long Hedge)")) %>%
+  ggplot(aes(x = Data, y = Resultado, fill = Resultado > 0)) +
+  geom_col(width = 0.8, show.legend = FALSE) +
+  geom_hline(yintercept = 0, linetype = "solid", color = "gray30") +
+  scale_fill_manual(values = c("TRUE" = "#27ae60", "FALSE" = "#e74c3c")) +
+  facet_grid(Posicao ~ Commodity, scales = "free") +
+  labs(
+    title = "Resultado Diário do Hedge (R$/contrato = 450 sacas)",
+    x = NULL, y = "R$"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+## 5.2 · Resultado Acumulado
+
+```{r grafico_acumulado, fig.width=12, fig.height=6}
+df_all %>%
+  filter(!is.na(R450_V)) %>%
+  select(Commodity, Data, R450_V_acum, R450_C_acum) %>%
+  pivot_longer(cols = c(R450_V_acum, R450_C_acum),
+               names_to = "Posicao", values_to = "Acumulado") %>%
+  mutate(Posicao = recode(Posicao,
+                          "R450_V_acum" = "Venda (Short Hedge)",
+                          "R450_C_acum" = "Compra (Long Hedge)")) %>%
+  ggplot(aes(x = Data, y = Acumulado, color = Posicao)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  scale_color_manual(values = c("Venda (Short Hedge)" = "#e74c3c",
+                                "Compra (Long Hedge)"  = "#2980b9")) +
+  facet_wrap(~ Commodity, scales = "free_y", ncol = 2) +
+  labs(
+    title  = "Resultado Acumulado do Hedge por Commodity",
+    x      = NULL,
+    y      = "R$ Acumulado",
+    color  = NULL
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top", strip.text = element_text(face = "bold"))
+```
+
+## 5.3 · Tabela de Resultados Totais
+
+```{r tabela_resultado_total}
+df_all %>%
+  filter(!is.na(RESULTADO_V)) %>%
+  group_by(Commodity) %>%
+  summarise(
+    Dias             = n(),
+    # Base
+    `Base Média`     = mean(Base, na.rm = TRUE),
+    `Base SD`        = sd(Base, na.rm = TRUE),
+    # Venda
+    `Res. Venda (Σ R$)`  = sum(R450_V, na.rm = TRUE),
+    `Dias + Venda`   = sum(RESULTADO_V > 0, na.rm = TRUE),
+    `Dias - Venda`   = sum(RESULTADO_V < 0, na.rm = TRUE),
+    # Compra
+    `Res. Compra (Σ R$)` = sum(R450_C, na.rm = TRUE),
+    `Dias + Compra`  = sum(RESULTADO_C > 0, na.rm = TRUE),
+    `Dias - Compra`  = sum(RESULTADO_C < 0, na.rm = TRUE)
+  ) %>%
+  kable(
+    digits  = 2,
+    caption = "Resultado total do hedge por commodity (1 contrato = 450 sacas)"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE)
+```
+
+------------------------------------------------------------------------
+
+# 6 · Distribuição da Base (Histogramas)
+
+```{r histograma_base, fig.width=12, fig.height=8}
+df_all %>%
+  filter(!is.na(Base)) %>%
+  ggplot(aes(x = Base, fill = Commodity)) +
+  geom_histogram(bins = 25, color = "white", alpha = 0.85, show.legend = FALSE) +
+  geom_vline(aes(xintercept = 0), linetype = "dashed", color = "gray30") +
+  scale_fill_manual(values = c("Soja" = "#e74c3c","Milho" = "#f39c12",
+                               "Café" = "#8e44ad","Boi Gordo" = "#2980b9")) +
+  facet_wrap(~ Commodity, scales = "free", ncol = 2) +
+  labs(
+    title = "Distribuição da Base por Commodity",
+    x = "Base (R$)", y = "Frequência"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+------------------------------------------------------------------------
+
+# 7 · Glossário das Colunas Calculadas
+
+```{r tabela_glossario}
+glossario <- tibble(
+  Coluna        = c("SPOT","FUT Invest","Base",
+                    "ENTRAGA_V","SAÍDA_V","RESULTADO_V","R$ 450 Venda","Acum. Venda",
+                    "ENTRAGA_C","SAÍDA_C","RESULTADO_C","R$ 450 Compra","Acum. Compra"),
+  Fórmula       = c(
+    "Dado externo (CEPEA)",
+    "Dado externo (Investing.com)",
+    "SPOT − FUT_Invest",
+    "FUT_Invest[t−1]",
+    "FUT_Invest[t]",
+    "ENTRAGA_V − SAÍDA_V",
+    "RESULTADO_V × 450",
+    "Σ R$ 450 Venda",
+    "FUT_Invest[t−1]",
+    "FUT_Invest[t]",
+    "SAÍDA_C − ENTRAGA_C",
+    "RESULTADO_C × 450",
+    "Σ R$ 450 Compra"
+  ),
+  Interpretação = c(
+    "Preço à vista da commodity na praça local",
+    "Preço do contrato futuro mais próximo (B3 ou CBOT)",
+    "Diferencial entre físico e futuro; indica contango (−) ou backwardation (+)",
+    "Preço de entrada no futuro: posição vendida aberta ao preço de ontem",
+    "Preço de saída no futuro: marcação a mercado de hoje",
+    "Lucro/prejuízo diário do hedge de venda (short); positivo se FUT caiu",
+    "Resultado financeiro em R$ para 1 contrato padrão de 450 sacas — Venda",
+    "Fluxo acumulado de caixa do hedge de venda no período",
+    "Preço de entrada no futuro: posição comprada aberta ao preço de ontem",
+    "Preço de saída no futuro: marcação a mercado de hoje",
+    "Lucro/prejuízo diário do hedge de compra (long); positivo se FUT subiu",
+    "Resultado financeiro em R$ para 1 contrato padrão de 450 sacas — Compra",
+    "Fluxo acumulado de caixa do hedge de compra no período"
+  )
+)
+
+kable(glossario, caption = "Definição e fórmula de cada coluna calculada") %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = TRUE) %>%
+  column_spec(1, bold = TRUE, width = "15%") %>%
+  column_spec(2, monospace = TRUE, width = "30%") %>%
+  column_spec(3, width = "55%")
+```
+
+------------------------------------------------------------------------
+
+*Gerado automaticamente com R + Quarto. Fontes: CEPEA (SPOT), Investing.com (FUT Invest), IPEA (câmbio).*

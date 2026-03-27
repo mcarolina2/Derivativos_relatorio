@@ -1,0 +1,231 @@
+---
+title: "Relatorio_Maria_Derivativos"
+format: html
+editor: visual
+---
+
+## Relatório 
+
+<div>
+
+-   Professor:
+
+-   Aluna: Maria Carolina
+
+</div>
+
+## Definição de datas :
+
+<div>
+
+-   Soja (Contratos SJC) Escolha dos meses (3 meses): Março, Maio e Novembro de 2025
+    -   Justificativa: A dinâmica da soja no Brasil é semelhante à do milho verão. O livro (MF) aponta a safra de fevereiro a maio e a entressafra de setembro a dezembro. Foram selecionados Março (H) e Maio (K) para representar a janela de safra, quando os preços tendem a ser pressionados pela farta oferta e há forte liquidez na bolsa. Já Novembro (X) foi escolhido por ser o mês clássico de entressafra (antes da nova colheita), refletindo os estoques baixos e a necessidade de importação ou retenção de grãos, o que afeta diretamente o preço futuro.
+-    Boi Gordo (Contratos BGI) Escolha dos meses (3 meses): Maio, Outubro e Novembro de 2025 (Preenchido para completar 3 meses)
+    -   Justificativa: O mercado de boi gordo é fortemente influenciado pelo regime de chuvas. Segundo o livro (MF), o período de maior comercialização (conhecido como "safra do boi de pasto") ocorre em maio, quando o pasto seca e os pecuaristas precisam enviar o gado ao frigorífico. Por isso, escolhi Maio (K). Para a entressafra, escolhi Outubro (V), tradicional mês de menor oferta de boi de pasto, onde os preços são sustentados pelo gado de confinamento. Adicionei Novembro (X) para avaliar como o preço reage ao auge do período de confinamento e à preparação do mercado para as festas de fim de ano.
+-    Café Arábica (Contratos ICF) Escolha dos meses (3 meses): Março, Julho e Setembro de 2024(Preenchido com base na sua regra)
+    -   Justificativa: O café possui uma sazonalidade muito específica. O livro (MF) indica que a safra ocorre de julho a setembro, enquanto o pico da entressafra se dá em março (período em que os estoques estão baixos e a nova safra ainda está se desenvolvendo no pé). Dessa forma, escolhi Março (H) para capturar o comportamento dos preços na escassez da entressafra. Para observar os efeitos da colheita e do aumento de liquidez, escolhi Julho (N) (início/meio da colheita) e Setembro (U) (reta final da colheita e consolidação dos preços de safra).
+-   Milho (Contratos CCM) Escolha dos meses (3 meses): Março, Maio e Novembro de 2025
+    -   Justificativa: Segundo o livro (MF), o período de safra principal (verão) ocorre entre fevereiro e maio, enquanto a entressafra vai de setembro a dezembro. Para analisar o comportamento dos preços, escolhi os meses de Março (H) e Maio (K), que representam o pico da safra, período caracterizado por maior entrada de produto físico no mercado e alta liquidez nos contratos futuros. Como contraponto, escolhi Novembro (X), que representa o auge da entressafra, permitindo verificar o comportamento dos preços (e da Base) em um período de escassez de oferta e prêmios mais altos.
+
+</div>
+
+```{r setup}
+# ===========================================================
+# PACOTES
+# ===========================================================
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(patchwork)
+
+options(scipen = 999999)
+
+# ===========================================================
+# FUNÇÃO GENÉRICA DE LEITURA E CÁLCULO
+# ===========================================================
+# Lê um arquivo CSV no formato padrão das planilhas e
+# recalcula todas as colunas derivadas a partir de SPOT e FUT.
+#
+# Colunas presentes nos arquivos:
+#   Data | SPOT | FUT Invest | Base | ENTRAGA_V | SAÍDA_V |
+#   RESULTADO_V | 450V | ENTRAGA_C | SAÍDA_C | RESULTADO_C | 450C
+#
+# Lógica de recálculo (hedge diário — marcação a mercado):
+#   Base          = SPOT - FUT_Invest
+#
+#   Para Venda (Short Hedge / Hedge do Vendedor):
+#     ENTRAGA_V[t] = FUT[t-1]   (entrada = preço futuro do dia anterior)
+#     SAÍDA_V[t]   = FUT[t]     (saída   = preço futuro do dia corrente)
+#     RESULTADO_V  = ENTRAGA_V - SAÍDA_V    (lucro se FUT caiu)
+#     R$_450V      = RESULTADO_V × 450      (resultado financeiro — 1 contrato)
+#
+#   Para Compra (Long Hedge / Hedge do Comprador):
+#     ENTRAGA_C[t] = FUT[t-1]
+#     SAÍDA_C[t]   = FUT[t]
+#     RESULTADO_C  = SAÍDA_C - ENTRAGA_C    (lucro se FUT subiu)
+#     R$_450C      = RESULTADO_C × 450
+#
+# Nota: Os arquivos de Soja e Milho armazenam SPOT nas colunas
+# ENTRAGA/SAÍDA (e.g. hedge no físico). O script recalcula usando
+# FUT, que é o padrão teórico do hedge com derivativos.
+# ===========================================================
+
+ler_commodity <- function(caminho, nome_commodity) {
+
+  # --- 1. Leitura bruta ---
+  df_raw <- read.csv(
+    caminho,
+    skip    = 1,          # pula a 1ª linha vazia
+    header  = TRUE,
+    sep     = ",",
+    dec     = ".",
+    stringsAsFactors = FALSE,
+    fileEncoding = "UTF-8"
+  )
+
+  # Padroniza nomes de colunas (remove espaços, acentos, caracteres especiais)
+  colnames(df_raw) <- c(
+    "Data", "SPOT", "FUT_Invest", "Base_orig",
+    "ENTRAGA_V_orig", "SAIDA_V_orig", "RESULTADO_V_orig", "R450V_orig",
+    "ENTRAGA_C_orig", "SAIDA_C_orig", "RESULTADO_C_orig", "R450C_orig"
+  )
+
+  # --- 2. Limpeza: remove linhas sem data (totalizadores) ---
+  df <- df_raw %>%
+    filter(!is.na(Data) & Data != "" & grepl("^\\d{2}/\\d{2}/\\d{4}$", trimws(Data))) %>%
+    mutate(
+      Data       = dmy(trimws(Data)),
+      SPOT       = as.numeric(gsub(",", ".", as.character(SPOT))),
+      FUT_Invest = as.numeric(gsub(",", ".", as.character(FUT_Invest)))
+    ) %>%
+    filter(!is.na(SPOT), !is.na(FUT_Invest)) %>%
+    arrange(Data)
+
+  # --- 3. Recálculo das colunas derivadas ---
+  df <- df %>%
+    mutate(
+      # Base (risco de base)
+      Base = SPOT - FUT_Invest,
+
+      # ── HEDGE DE VENDA (Short Hedge — produtor/exportador) ──
+      # Entrada no futuro: preço do dia anterior (lag 1)
+      ENTRAGA_V  = lag(FUT_Invest, 1),
+      # Saída no futuro: preço do dia corrente
+      SAIDA_V    = FUT_Invest,
+      # Resultado diário: ganhou se o futuro caiu
+      RESULTADO_V = ENTRAGA_V - SAIDA_V,
+      # Resultado financeiro: 1 contrato padrão = 450 sacas
+      R450_V      = RESULTADO_V * 450,
+      # Resultado financeiro acumulado
+      R450_V_acum = cumsum(ifelse(is.na(R450_V), 0, R450_V)),
+
+      # ── HEDGE DE COMPRA (Long Hedge — indústria/importador) ──
+      ENTRAGA_C  = lag(FUT_Invest, 1),
+      SAIDA_C    = FUT_Invest,
+      RESULTADO_C = SAIDA_C - ENTRAGA_C,
+      R450_C      = RESULTADO_C * 450,
+      R450_C_acum = cumsum(ifelse(is.na(R450_C), 0, R450_C)),
+
+      # Commodity label
+      Commodity = nome_commodity
+    )
+
+  return(df)
+}
+
+# ===========================================================
+# CARGA DOS 4 ARQUIVOS
+# ===========================================================
+# Ajuste os caminhos abaixo conforme o local dos seus CSVs
+df_soja  <- ler_commodity("Dados_soja - Dados (1).csv",  "Soja")
+df_milho <- ler_commodity("Dados_Milho - Dados (1).csv", "Milho")
+df_cafe  <- ler_commodity("Dados Café - Café.csv",       "Café")
+df_boi   <- ler_commodity("Dados_boi - boi.csv",         "Boi Gordo")
+
+# Base consolidada (todas as commodities empilhadas)
+df_all <- bind_rows(df_soja, df_milho, df_cafe, df_boi) %>%
+  mutate(Commodity = factor(Commodity, levels = c("Soja","Milho","Café","Boi Gordo")))
+```
+
+```{#| echo: false}
+#| message: false
+#| warning: false
+
+options(scipen=999999)
+library(rbcb)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+
+# 1. IPCA E ÍNDICE (Base Março/2026)
+ipca_raw <- get_series(433, start_date = "2024-01-01", end_date = "2026-02-01")
+df_ipca <- ipca_raw %>%
+  rename(data = date, ipca_var = `433`) %>%
+  mutate(data = floor_date(data, "month"),
+         indice = cumprod(1 + (ipca_var / 100)))
+
+indice_hoje <- tail(df_ipca$indice, 1)
+
+# 2. FUNÇÃO AJUSTADA PARA SEPARADOR POR VÍRGULA
+processar_contratos <- function(arquivo, nome_commodity, meses_filtro, anos_filtro) {
+  
+  # Lendo com read.csv (separador padrão é a vírgula)
+  df <- read.csv(arquivo, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+  
+  df_limpo <- df %>%
+    # Renomeia as duas primeiras colunas independentemente do nome original
+    rename(data_original = 1, preco_nominal = 2) %>%
+    mutate(
+      # Converte a data (tenta dia/mes/ano ou ano-mes-dia)
+      data = floor_date(parse_date_time(data_original, orders = c("dmy", "ymd")), "month"),
+      mes  = month(data),
+      ano  = year(data),
+      # Garante que o preço seja numérico
+      preco_nominal = as.numeric(preco_nominal),
+      Commodity = nome_commodity
+    ) %>%
+    # Filtra os meses e anos específicos que você solicitou
+    filter(mes %in% meses_filtro & ano %in% anos_filtro) %>%
+    # Deflação
+    inner_join(df_ipca %>% select(data, indice), by = "data") %>%
+    mutate(
+      preco_real = preco_nominal * (indice_hoje / indice)
+    ) %>%
+    select(data, Commodity, preco_nominal, preco_real)
+  
+  return(df_limpo)
+}
+
+# 3. CARGA DOS ARQUIVOS (Certifique-se que os nomes estão idênticos aos da pasta)
+try({
+  df_milho <- processar_contratos("Dados_Milho - Dados.csv", "Milho", c(3, 5, 11), 2025)
+  df_soja  <- processar_contratos("Dados_soja - Dados.csv",  "Soja",  c(3, 5, 11), 2025)
+  df_boi   <- processar_contratos("Dados_boi - boi (1).csv", "Boi Gordo", c(5, 10, 11), 2025)
+  df_cafe  <- processar_contratos("Dados Café - Café (1).csv", "Café", c(3, 7, 9), 2024)
+
+  # Consolidação
+  df_all <- bind_rows(df_milho, df_soja, df_boi, df_cafe)
+  
+  print("Processamento concluído com sucesso!")
+  print(head(df_all))
+}, silent = FALSE)
+
+# 4. GRÁFICO DE BARRAS PARA COMPARAÇÃO DOS MESES SELECIONADOS
+if(exists("df_all")) {
+  ggplot(df_all, aes(x = format(data, "%m/%Y"), y = preco_real, fill = Commodity)) +
+    geom_col(position = "dodge") +
+    labs(title = "Preços Reais nos Meses de Contrato (Base Mar/2026)",
+         subtitle = "Deflacionado pelo IPCA",
+         x = "Mês/Ano", y = "Preço Real (R$)") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+```{}
+```

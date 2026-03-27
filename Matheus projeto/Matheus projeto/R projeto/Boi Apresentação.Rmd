@@ -1,0 +1,530 @@
+---
+title: "Boi no mercado de derivativos"
+author: "M. Medley"
+format: html
+editor: visual
+---
+
+# Análise do contrato futuro do boi
+
+Análise da série histórica de preços do boi, relatórios e previsões.
+
+#### Observação dos cotações históricas e comparação com o preço real
+
+Série de preços spot (valor nominal e real) num intervalo mensal de Janeiro de 2006 à Fevereiro de 2026.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+options(scipen=999999)
+options(max.print=100000)
+
+library(rbcb)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+
+# 1. OBTENÇÃO DO IPCA (Seu código)
+datainic <- "2006-01-01" # Ajustado para o início da sua série de boi
+datafim  <- "2026-03-01"
+
+# Puxando o IPCA (Série 433 - Variação mensal %)
+ipca_raw <- get_series(433, start_date = datainic, end_date = "2026-02-01") 
+# Nota: Como março/26 ainda não saiu, o rbcb pegará até o último disponível.
+
+# Criando o número índice (Base 1 no primeiro mês da série)
+df_ipca <- ipca_raw %>%
+  rename(data = date, ipca_var = `433`) %>%
+  mutate(
+    data = floor_date(data, "month"),
+    indice = cumprod(1 + (ipca_var / 100))
+  )
+
+# 2. CARGA DO boi
+df_boi <- read.csv2("cepea-consulta-20260326060509.csv", skip = 4, header = FALSE) %>%
+  rename(mes_ano = V1, preco_nominal = V2) %>%
+  mutate(
+    data = floor_date(my(mes_ano), "month"),
+    preco_nominal = as.numeric(preco_nominal)
+  ) %>%
+  filter(!is.na(data))
+
+# 3. UNINDO E DEFLACIONANDO
+# Vamos usar o último índice disponível como base (Dez/25 ou Jan/26)
+indice_hoje <- tail(df_ipca$indice, 1)
+
+df_final <- df_boi %>%
+  inner_join(df_ipca %>% select(data, indice), by = "data") %>%
+  mutate(
+    # Fórmula: Preço Real = Preço Nominal * (Índice de Hoje / Índice da Época)
+    preco_real = preco_nominal * (indice_hoje / indice)
+  )
+
+# 4. GRÁFICO
+df_plot <- df_final %>%
+  select(data, preco_nominal, preco_real) %>%
+  pivot_longer(cols = c(preco_nominal, preco_real), 
+               names_to = "Serie", values_to = "Preco")
+
+ggplot(df_plot, aes(x = data, y = Preco, color = Serie)) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c("preco_nominal" = "red", "preco_real" = "blue"),
+                     labels = c("Nominal (R$ da época)", "Real (Poder de compra atual)")) +
+  labs(title = "boi Spot: Preço Nominal vs Real",
+       subtitle = "Deflacionado via IPCA (Série 433 BCB) - Acumulado Manual",
+       x = "Ano", y = "R$ / Saca") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+#### Comparação do preço spot, preço futuro e demonstração do risco de base
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(patchwork) # Para empilhar os gráficos
+
+# 1. CARGA E LIMPEZA - SPOT (CEPEA)
+df_spot <- read.csv2("cepea-consulta-20260326061009.csv", skip = 4, header = FALSE) %>%
+  rename(data_raw = V1, preco_spot = V2) %>%
+  mutate(
+    data = dmy(data_raw),
+    preco_spot = as.numeric(preco_spot)
+  ) %>%
+  filter(!is.na(data)) %>%
+  select(data, preco_spot)
+
+# 2. CARGA E LIMPEZA - FUTURO (CHICAGO)
+df_futuro <- read.csv("Dados Históricos - Boi Gordo Futuros.csv") %>%
+  rename(data_raw = Data, preco_futuro = Último) %>%
+  mutate(
+    data = dmy(data_raw),
+    # Removendo possíveis pontos de milhar e trocando vírgula por ponto
+    preco_futuro = as.numeric(gsub(",", ".", gsub("\\.", "", preco_futuro)))
+  ) %>%
+  filter(!is.na(data)) %>%
+  select(data, preco_futuro)
+
+# 3. JOIN E CÁLCULO DA BASE
+df_merge <- df_spot %>%
+  inner_join(df_futuro, by = "data") %>%
+  mutate(base = preco_spot - preco_futuro) %>%
+  arrange(data)
+
+# --- GRÁFICO 1: SPOT VS FUTURO ---
+p1 <- ggplot(df_merge) +
+  geom_line(aes(x = data, y = preco_spot, color = "Spot (Cepea)"), linewidth = 1) +
+  geom_line(aes(x = data, y = preco_futuro, color = "Futuro (Chicago)"), linewidth = 1, linetype = "dashed") +
+  scale_color_manual(values = c("Spot (Cepea)" = "darkgreen", "Futuro (Chicago)" = "blue")) +
+  labs(title = "Comparativo de Preços: Spot vs. Futuro",
+       subtitle = "Intervalo: Jan/2026 a Mar/2026",
+       x = NULL, y = "R$ / Saca", color = "Série") +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+# --- GRÁFICO 2: RISCO DE BASE ---
+p2 <- ggplot(df_merge, aes(x = data, y = base)) +
+  geom_area(fill = "red", alpha = 0.2) +
+  geom_line(color = "red", linewidth = 0.8) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  labs(title = "Risco de Base",
+       subtitle = "Cálculo: (Preço Spot - Preço Futuro)",
+       x = "Data", y = "Base (R$)") +
+  theme_minimal()
+
+# EMPILHANDO OS GRÁFICOS
+p1 / p2
+```
+
+**Risco de base** No segundo gráfico, os valores abaixo de 0 são os que preço futuro está maior que o preço spot, e os valores acima de 0 o oposto.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+# 1. CÁLCULO DAS ESTATÍSTICAS DA BASE
+estatisticas_base <- df_merge %>%
+  summarise(
+    Media = mean(base, na.rm = TRUE),
+    Desvio_Padrao = sd(base, na.rm = TRUE),
+    Minimo = min(base, na.rm = TRUE),
+    Maximo = max(base, na.rm = TRUE),
+    Amplitude = max(base, na.rm = TRUE) - min(base, na.rm = TRUE),
+    N_Observacoes = n()
+  )
+
+# 2. EXIBIR A TABELA FORMATADA
+print("--- Resumo Estatístico do Risco de Base (Jan-Mar 2026) ---")
+print(estatisticas_base)
+
+
+```
+
+O desvio padrão revela o quanto o preço spot e o futuro podem se diferenciar em média (no caso, R\$ 3,54 para cima ou para baixo), já o gráfico do risco de base, que é a diferença do preço spot para o preço futuro, nos dá um insight serial histórico, incluindo os casos extremos (R\$ -11,95 para baixo ou R\$ 7,00 para cima).
+
+# Relatórios
+
+### Relatório do Cepea
+
+Em 2025, o Brasil consolidou-se como o maior produtor mundial de carne bovina, superando os Estados Unidos pela primeira vez. Para 2026, projeta-se uma nova expansão da produção nacional, embora comedida devido a desafios como a retenção de fêmeas para cria e a dificuldade de reposição com animais de qualidade. O consumo doméstico tem expectativa de crescimento em 2026, impulsionado por fatores macroeconômicos como a isenção de IR para certas faixas e eventos como a Copa do Mundo. Nas exportações, o cenário é de recordes sucessivos; em fevereiro de 2026, os embarques de carne in natura atingiram 235,9 mil toneladas, volume 23,9% superior ao mesmo mês de 2025. Embora os documentos não tragam tabelas exatas de estoques finais de carne (produto perecível), indicam um mercado com oferta restrita de animais e escalas de abate curtas (3 a 8 dias), sugerindo estoques de passagem de animais e carne bastante ajustados.
+
+### Relatório do USDA (resumo do CEPEA)
+
+As projeções globais indicam que o Brasil deve manter a liderança produtiva iniciada em 2025. A produção nos Estados Unidos deve continuar em queda, o que reduz a oferta mundial de carne e fortalece os preços internacionais. Essa diminuição na oferta de grandes concorrentes sustenta a competitividade da carne brasileira, permitindo a diversificação de destinos e o crescimento contínuo das vendas externas ao longo de 2026. Com a demanda global aquecida e a oferta limitada, os estoques mundiais tendem a permanecer baixos, reiterando o estímulo à produção nos países exportadores.
+
+#### Plano Safra
+
+O Plano Safra foca principalmente na produção sustentável, e, apesar de facilitar crédito num aspecto geral, há uma atenção especial para granjas.
+
+# Estatística descritiva
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(fBasics)
+library(knitr)
+
+# --- 1. ENJANELAMENTO (Método window) ---
+start_year <- as.numeric(format(min(df_final$data), "%Y"))
+start_month <- as.numeric(format(min(df_final$data), "%m"))
+
+boi_real_ts <- ts(df_final$preco_real, start = c(start_year, start_month), frequency = 12)
+
+# Janela conforme solicitado: 2022.01 a 2026.02
+boi_janela_ts <- window(boi_real_ts, start = c(2022, 1), end = c(2026, 2))
+
+df_janela_final <- data.frame(
+  Valor = as.numeric(boi_janela_ts),
+  Variável = "boi Real (Janela 22-26)"
+)
+
+# --- 2. PREPARAÇÃO DOS DADOS (ORDEM: Nominal, Real, Janela) ---
+df_hist_comparativo <- df_final %>%
+  select(preco_nominal, preco_real) %>%
+  pivot_longer(cols = everything(), names_to = "Variável", values_to = "Valor") %>%
+  mutate(Variável = ifelse(Variável == "preco_nominal", "boi Nominal (Total)", "boi Real (Total)")) %>%
+  bind_rows(df_janela_final) %>%
+  # Forçando a ordem dos níveis do fator
+  mutate(Variável = factor(Variável, levels = c("boi Nominal (Total)", 
+                                                "boi Real (Total)", 
+                                                "boi Real (Janela 22-26)")))
+
+# --- 3. CRIAÇÃO DO HISTOGRAMA ---
+grafico_hist <- ggplot(df_hist_comparativo, aes(x = Valor, fill = Variável)) +
+  geom_histogram(bins = 30, color = "black", alpha = 0.7) +
+  facet_wrap(~ Variável, scales = "free", ncol = 3) +
+  scale_fill_manual(values = c("boi Nominal (Total)" = "steelblue", 
+                               "boi Real (Total)" = "darkgreen", 
+                               "boi Real (Janela 22-26)" = "orange")) +
+  labs(title = "Distribuição de Frequência: Nominal vs Real vs Janela",
+       x = "Preço (R$)", y = "Frequência") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# --- 4. CRIAÇÃO DO QQ-PLOT ---
+df_qq <- df_hist_comparativo %>%
+  group_by(Variável) %>%
+  mutate(
+    Esperado = qnorm(ppoints(n())),
+    Observado = sort(Valor)
+  ) %>%
+  ungroup()
+
+grafico_qq <- ggplot(df_qq, aes(x = Esperado, y = Observado)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", linetype = "dashed", se = FALSE) +
+  facet_wrap(~ Variável, scales = "free", ncol = 3) +
+  labs(title = "QQ-Plot: Aderência à Distribuição Normal",
+       x = "Quantis Teóricos", y = "Quantis Observados") +
+  theme_minimal()
+
+# --- 5. TABELA DE ESTATÍSTICAS ---
+tab_stats <- df_hist_comparativo %>%
+  group_by(Variável) %>%
+  summarise(
+    Media = mean(Valor, na.rm = TRUE),
+    Desvio_Padrao = sd(Valor, na.rm = TRUE),
+    Coef_Variacao = (Desvio_Padrao / Media) * 100,
+    Minimo = min(Valor, na.rm = TRUE),
+    Maximo = max(Valor, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# --- 6. EXECUÇÃO DOS PRINTS ---
+
+print(grafico_hist)
+```
+
+O histrograma mostra com que frequência os dados apresentam um valor numa determinada faixa. O ideal é formar um sino, o que ocorre na janela.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+print(grafico_qq)
+```
+
+O Quantile-Quantile Plot mostra uma distribuição perfeita (a reta inclinada) e sobrepõe nela os nossos dados. Quanto mais em posição de "S" e distante da reta estão os pontos, pior é a distribuição.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+kable(tab_stats, digits = 2, caption = "Estatística Descritiva: Comparativo Nominal, Real e Janela")
+```
+
+A janela apresenta uma menor variabilidade dos dados, o que facilita para que haja uma previsão mais acertiva.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(fBasics)
+library(tseries)
+library(knitr)
+
+# --- 1. PREPARAÇÃO DAS SÉRIES (TS) ---
+# Criando as séries TS para os testes (necessário para o decompose)
+# boi Nominal Total
+boi_nom_ts <- ts(df_final$preco_nominal, start = c(start_year, start_month), frequency = 12)
+# boi Real Total
+boi_real_ts <- ts(df_final$preco_real, start = c(start_year, start_month), frequency = 12)
+# boi Real Janela (já criado no passo anterior)
+# boi_janela_ts <- window(boi_real_ts, start = c(2022, 1), end = c(2026, 2))
+
+# --- 2. TESTES DE NORMALIDADE (Jarque-Bera e Shapiro-Wilk) ---
+testes_norm <- data.frame(
+  Série = c("Nominal Total", "Real Total", "Real Janela (22-26)"),
+  JB_p_value = c(jarqueberaTest(boi_nom_ts)@test$p.value,
+                 jarqueberaTest(boi_real_ts)@test$p.value,
+                 jarqueberaTest(boi_janela_ts)@test$p.value),
+  Shapiro_p_value = c(shapiro.test(boi_nom_ts)$p.value,
+                      shapiro.test(boi_real_ts)$p.value,
+                      shapiro.test(boi_janela_ts)$p.value)
+)
+
+print("--- Resultados dos Testes de Normalidade ---")
+kable(testes_norm, digits = 4)
+```
+
+Quando o p-valor no teste de Jarque-Bera é inferior a 0,05, a amostra não segue uma distribuição normal e portanto não é possível realizar uma previsão econométrica com precisão, devido a valores extremos. Neste caso, apenas a amostra na janela passou no referido teste. As demais séries ficaram de fora provavelmente devido aos choques ao longo dos anos.
+
+O teste de Shapiro-Wilk também demanda um p-valor mínimo de 0,05. Nesse caso, apenas a janela passou no teste, o que reforça o indicativo de distribuição normal.
+
+***Como apenas na janela a série apresentou normalidade, daqui em diante apenas ela é usada.***
+
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+# --- 3. DECOMPOSIÇÃO ADITIVA ---
+# Vamos plotar a decomposição da Janela Real, que é o seu foco principal
+print("Decomposição Aditiva - boi Real (Janela 2022-2026)")
+decom_adit <- decompose(boi_janela_ts, type = "additive")
+plot(decom_adit)
+
+# --- 4. DECOMPOSIÇÃO MULTIPLICATIVA ---
+print("Decomposição Multiplicativa - boi Real (Janela 2022-2026)")
+decom_mult <- decompose(boi_janela_ts, type = "multiplicative")
+plot(decom_mult)
+```
+
+### Hodrick-Prescott
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| results: 'hide'
+
+library(mFilter)
+
+# Aplicando o Filtro HP
+# O lambda = 14400 é o padrão para dados mensais
+hp_boi <- hpfilter(boi_janela_ts, freq = 14400)
+
+# Extraindo os componentes
+tendencia <- hp_boi$trend
+ciclo <- hp_boi$cycle
+
+# Plotando o resultado
+plot(hp_boi)
+```
+
+No gráfico de Hodrick-Prescott, temos a linha vermelha que capta a tendência do mercado sem todo o ruído da linha azul, que capta os preços reais. O que observamos é que a tendência é de alta.
+
+# Previsão dos preços
+
+### Preço spot nos próximos 6 meses
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| results: 'hide'
+#| fig-height: 6
+#| fig-width: 6
+
+# --- 1. BIBLIOTECAS E SETUP ---
+library(urca)
+library(forecast)
+library(ggplot2)
+library(gridExtra)
+
+# --- 2. PREPARAÇÃO DA JANELA CEPEA ---
+# Usando a série que enjanelamos anteriormente (2022.01 a 2026.02)
+# Aplicamos o LOG para estabilizar a variância da commodity
+serie_log_boi <- log(boi_janela_ts) 
+
+# --- 3. RIGOR ESTATÍSTICO: TESTES DE RAIZ UNITÁRIA (ADF) ---
+print("--- Teste ADF em Nível (boi Janela Log) ---")
+# Verificamos se a série de preços tem tendência (drift)
+summary(ur.df(serie_log_boi, type = "drift", selectlags = "BIC"))
+
+print("--- Teste ADF na 1ª Diferença (Retornos Log) ---")
+# O boi geralmente precisa de 1 diferença (d=1) para ficar estacionário
+summary(ur.df(diff(serie_log_boi), type = "none", selectlags = "BIC"))
+
+# --- 4. ESTIMAÇÃO DO MODELO ARIMA(1,1,3) ---
+# Mantendo a ordem solicitada para fins de comparação acadêmica
+fit_modelo_boi <- Arima(serie_log_boi, order = c(1, 1, 3), method = "ML")
+
+print("--- Sumário do Modelo Estimado (Janela 2022-2026) ---")
+summary(fit_modelo_boi)
+
+# --- 5. DIAGNÓSTICO DOS RESÍDUOS ---
+# 5.1. Visualização Geral
+tsdiag(fit_modelo_boi)
+
+# 5.2. Teste Formal de Ljung-Box (Independência dos Resíduos)
+lags_to_test <- c(1, 6, 12, 18, 24)
+lb_results <- data.frame(Lag = lags_to_test, P_Value = NA)
+
+for(i in seq_along(lags_to_test)) {
+  test <- Box.test(residuals(fit_modelo_boi), lag = lags_to_test[i], type = "Ljung-Box")
+  lb_results$P_Value[i] <- round(test$p.value, 4)
+}
+
+print("--- Resultados Teste Ljung-Box (Desejável p > 0.05 para Ruído Branco) ---")
+print(lb_results)
+```
+
+No teste ACF of residuals (autocorrelação dos resíduos), o ideal é que nenhuma barra cruze a o tracejado azul. No caso presente caso, há apenas um cruzamento, o que significa que há uma pequena autocorrelação, mas não significante ao ponto de deixar o modelo pouco robusto.
+
+Já no teste p-values of Ljung-Box, o ideal é que todas as bolinhas estejam acima do tracejado azul, que representa 0,05. Acima desse valor, significa que o modelo captura bem os dados e os erros se comportam como ruído branco.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| results: 'hide'
+# --- 6. PREVISÃO E VISUALIZAÇÃO ---
+# Previsão para os próximos 6 meses (até o segundo semestre de 2026)
+previsao_boi <- forecast(fit_modelo_boi, h = 6) 
+
+# Gráfico Final (Estilo ggplot2)
+autoplot(previsao_boi) +
+  labs(title = "Previsão ARIMA(1,1,3): boi Cepea (Janela 2022-2026)",
+       subtitle = "Série Deflacionada em Logaritmo",
+       x = "Ano", y = "Log(Preço Real)") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"))
+
+# --- 7. RETORNO AO VALOR ORIGINAL (REVERSÃO DO LOG) ---
+# Extraindo o ponto central da última previsão (h=6)
+valor_final_log <- tail(previsao_boi$mean, 1)
+valor_final_real <- exp(valor_final_log) # Apenas exp(), pois não usamos +1 no log
+
+cat("Previsão do Preço Real do boi para daqui a 6 meses (R$):", round(valor_final_real, 2))
+```
+
+### Preço spot e preço futuro
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| results: 'hide'
+
+library(forecast)
+library(ggplot2)
+library(dplyr)
+
+# --- 1. PREPARAÇÃO DAS SÉRIES DIÁRIAS ---
+# Criando objetos ts com frequência diária (aproximadamente 22 dias úteis por mês)
+# Como é um período curto, não definimos 'frequency' complexa, tratamos como sequência
+spot_diario_ts <- ts(df_merge$preco_spot)
+futuro_diario_ts <- ts(df_merge$preco_futuro)
+
+# --- 2. MODELAGEM ARIMA(1,1,3) ---
+# Aplicamos nos logs para estabilizar a variância diária
+fit_spot_d <- Arima(log(spot_diario_ts), order = c(1, 1, 3))
+fit_futuro_d <- Arima(log(futuro_diario_ts), order = c(1, 1, 3))
+
+# Previsão para os próximos 15 dias úteis
+h_dias <- 15
+prev_spot_d <- forecast(fit_spot_d, h = h_dias)
+prev_futuro_d <- forecast(fit_futuro_d, h = h_dias)
+
+# --- 3. DATAFRAME PARA O GRÁFICO ---
+# Função para organizar a projeção
+prepara_projecao <- function(prev, nome, start_idx) {
+  data.frame(
+    id = seq(start_idx + 1, start_idx + h_dias),
+    Preco = exp(as.numeric(prev$mean)),
+    Lower = exp(as.numeric(prev$lower[,2])),
+    Upper = exp(as.numeric(prev$upper[,2])),
+    Serie = nome
+  )
+}
+
+ultimo_id <- nrow(df_merge)
+df_proj_spot <- prepara_projecao(prev_spot_d, "Spot (Cepea)", ultimo_id)
+df_proj_futuro <- prepara_projecao(prev_futuro_d, "Futuro (Chicago)", ultimo_id)
+
+# Histórico formatado
+df_hist_d <- df_merge %>%
+  mutate(id = row_number()) %>%
+  select(id, preco_spot, preco_futuro) %>%
+  pivot_longer(cols = starts_with("preco"), names_to = "Serie", values_to = "Preco") %>%
+  mutate(Serie = ifelse(Serie == "preco_spot", "Spot (Cepea)", "Futuro (Chicago)"))
+
+# --- 4. GRÁFICO DE CONVERGÊNCIA DIÁRIA ---
+ggplot() +
+  # Histórico Real Jan-Mar 2026
+  geom_line(data = df_hist_d, aes(x = id, y = Preco, color = Serie), size = 1) +
+  # Projeção ARIMA 15 dias
+  geom_line(data = df_proj_spot, aes(x = id, y = Preco, color = Serie), linetype = "dashed") +
+  geom_line(data = df_proj_futuro, aes(x = id, y = Preco, color = Serie), linetype = "dashed") +
+  # Bandas de Confiança
+  geom_ribbon(data = df_proj_spot, aes(x = id, ymin = Lower, ymax = Upper), fill = "darkgreen", alpha = 0.1) +
+  geom_ribbon(data = df_proj_futuro, aes(x = id, ymin = Lower, ymax = Upper), fill = "blue", alpha = 0.1) +
+  scale_color_manual(values = c("Spot (Cepea)" = "darkgreen", "Futuro (Chicago)" = "blue")) +
+  labs(title = "Previsão Diária de Curto Prazo: Spot vs Chicago",
+       subtitle = "Projeção de 15 dias úteis (ARIMA 1,1,3) baseada em Jan-Mar/2026",
+       x = "Dias Decorridos (Jan-Abr 2026)", y = "R$ / Saca") +
+  theme_minimal()
+```
+
+## Conclusão
+
+Pela análise fundamentalista, se observa que se seguirá um aumento de preço pelos próximos meses, o que aparentemente já foi precificado pelo preço futuro. Ao analisar a série, se observa que a tendência também é de alta. Desse modo, **não parece tão vantajoso fazer hedge** enquanto produtor. Já para o processador **é prudente fazer hegde** para se proteger da alta.
+

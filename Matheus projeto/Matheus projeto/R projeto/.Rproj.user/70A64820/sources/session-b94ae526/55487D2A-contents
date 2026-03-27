@@ -1,0 +1,179 @@
+---
+title: "Mercado de Derivativos - Milho"
+author: "M. Medley"
+format: html
+editor: visual
+---
+
+## Análise do contrato futuro do milho
+
+Análise da série histórica de preços do milho e relatórios.
+
+**Gráficos**
+
+Série de preços spot e futuro num intervalo mensal de Janeiro de 2023 à Fevereiro
+de 2026.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+
+# 1. CARGA E LIMPEZA DO SPOT (CEPEA)
+df_spot <- read.csv2("cepea-consulta-20260320091531.csv", skip = 4, header = FALSE) %>%
+  rename(mes_ano = V1, preco_spot = V2) %>%
+  mutate(data = my(mes_ano),
+         preco_spot = as.numeric(preco_spot)) %>%
+  filter(!is.na(data)) %>%
+  arrange(data)
+
+# 2. CARGA E LIMPEZA DO FUTURO (INVESTING/CHICAGO)
+# Corrigindo a ordem cronológica aqui com arrange(data)
+df_futuro <- read.csv("Dados Históricos - Milho Chicago Futuros.csv", sep=",", dec=",") %>%
+  mutate(data = dmy(Data), 
+         preco_futuro = as.numeric(Último)) %>%
+  filter(!is.na(data)) %>%
+  arrange(data) %>%
+  select(data, preco_futuro)
+
+# 3. UNIÃO DAS SÉRIES (INNER JOIN)
+df_comparativo <- df_spot %>%
+  inner_join(df_futuro, by = "data") %>%
+  mutate(base = preco_spot - preco_futuro)
+
+# 4. GRÁFICO 1: OS DOIS JUNTOS
+# Transformando para formato longo para o ggplot
+df_longo <- df_comparativo %>%
+  select(data, preco_spot, preco_futuro) %>%
+  pivot_longer(cols = c(preco_spot, preco_futuro), 
+               names_to = "Tipo", values_to = "Valor")
+
+ggplot(df_longo, aes(x = data, y = Valor, color = Tipo)) +
+  geom_line(size = 1) +
+  scale_color_manual(values = c("preco_spot" = "darkgreen", "preco_futuro" = "darkblue"),
+                     labels = c("Futuro (B3/Chicago)", "Spot (Cepea)")) +
+  scale_x_date(date_labels = "%m/%y", date_breaks = "4 months") +
+  labs(title = "Comparativo: Preço Spot vs. Preço Futuro",
+       subtitle = "Alinhamento cronológico das séries",
+       x = "Período", y = "R$/Saca", color = "Série") +
+  theme_minimal()
+
+
+```
+
+**Risco de base**
+Os valores acima de 0 são os que preço spot está maior que o preço futuro,
+e os valores abaixo de 0 o oposto.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+# 5. GRÁFICO 2: RISCO DE BASE
+ggplot(df_comparativo, aes(x = data, y = base)) +
+  geom_area(fill = "purple", alpha = 0.3) +
+  geom_line(color = "purple", linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  scale_x_date(date_labels = "%m/%y", date_breaks = "4 months") +
+  labs(title = "Análise do Risco de Base",
+       subtitle = "Cálculo: Preço Spot - Preço Futuro",
+       x = "Período", y = "Valor da Base (R$)") +
+  theme_minimal()
+
+# 6. CÁLCULO FINAL (Corrigido para df_comparativo$base)
+sd_base <- sd(df_comparativo$base, na.rm = TRUE)
+
+# Usando cat para uma saída mais limpa no relatório
+cat("Desvio Padrão da Base (Risco de Base): R$", round(sd_base, 2))
+```
+
+O desvio padrão revela o quanto o preço spot e o futuro podem se diferenciar em média (no caso, R$ 4,50 para cima ou para baixo), já o risco de base, a diferença do preço spot para o preço futuro, nos dá um insight serial histórico, incluindo os casos extremos (R$ 10,00 pra cima ou para baixo).
+
+**Relatório da Conab**
+
+Há a expectativa de que a produção total de milho atinja os 138,27 milhões, o que se deve ao aumento da área plantada, mas esse valor é ligeiramente menor que o da safra anterior, devido a uma queda na produtividade. Também há expectativa de um ligeiro aumento de 4,4 no consumo interno, o que contribui para a manutenção ou um leve aumento nos preços.
+
+**Relatório do USDA (resumo do CEPEA)**
+
+A produção nos EUA deve ser moderamente menor, cerca de 7%, assim como o consumo. Já as exportações devem cair 6%, devido a maior participação da América Latina.
+
+**Plano Safra**
+
+O Plano Safra foca principalmente na produção sustentável, e, apesar de facilitar crédito num aspecto geral, há uma atenção especial para granjas.
+
+**Previsão do preço utilizando o modelo Arima**
+
+O Arima ainda está em testes.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| results: 'hide'
+
+library(dplyr)
+library(lubridate)
+library(urca)      
+library(forecast)  
+library(ggplot2)
+
+# 1. CARGA E LIMPEZA (Spot e Futuro)
+df_spot <- read.csv2("cepea-consulta-20260320091531.csv", skip = 4, header = FALSE) %>%
+  rename(mes_ano = V1, preco = V2) %>%
+  mutate(data = my(mes_ano), preco = as.numeric(preco)) %>%
+  filter(!is.na(data), !is.na(preco)) %>%
+  arrange(data)
+
+df_futuro <- read.csv("Dados Históricos - Milho Chicago Futuros.csv", sep=",", dec=",") %>%
+  mutate(data = dmy(Data), preco = as.numeric(Último)) %>%
+  filter(!is.na(data), !is.na(preco)) %>%
+  arrange(data) %>%
+  select(data, preco)
+
+# 2. CRIAR SÉRIES TEMPORAIS EM LOG
+log_spot <- ts(log(df_spot$preco), frequency = 12, 
+               start = c(year(min(df_spot$data)), month(min(df_spot$data))))
+
+log_futuro <- ts(log(df_futuro$preco), frequency = 12, 
+                 start = c(year(min(df_futuro$data)), month(min(df_futuro$data))))
+
+# 3. ESTIMAÇÃO DOS MODELOS ARIMA(1,1,3)
+fit_spot <- Arima(log_spot, order = c(1, 1, 3), method = "ML")
+fit_futuro <- Arima(log_futuro, order = c(1, 1, 3), method = "ML")
+
+# --- DIAGNÓSTICO DO MODELO SPOT ---
+# Gera: Resíduos, ACF dos Resíduos e P-valores do Ljung-Box
+print("--- Diagnóstico de Resíduos: Preço Spot ---")
+tsdiag(fit_spot)
+
+# 4. GERAÇÃO DAS PREVISÕES (h = 3 meses)
+prev_spot <- forecast(fit_spot, h = 3)
+prev_futuro <- forecast(fit_futuro, h = 3)
+
+# 5. GRÁFICO DAS DUAS PREVISÕES JUNTAS
+# Usando autoplot para combinar as séries e as áreas de previsão
+autoplot(log_spot, series = "Spot (Cepea)") +
+  autolayer(log_futuro, series = "Futuro (B3)") +
+  autolayer(prev_spot, series = "Prev. Spot", PI = TRUE, alpha = 0.2) +
+  autolayer(prev_futuro, series = "Prev. Futuro", PI = TRUE, alpha = 0.2) +
+  scale_color_manual(values = c("Spot (Cepea)" = "darkgreen", 
+                                "Futuro (B3)" = "darkblue",
+                                "Prev. Spot" = "darkgreen", 
+                                "Prev. Futuro" = "darkblue")) +
+  scale_fill_manual(values = c("Prev. Spot" = "green", 
+                               "Prev. Futuro" = "blue")) +
+  labs(title = "Previsão Conjunta ARIMA(1,1,3): Spot vs Futuro",
+       subtitle = "Séries em Logaritmo com bandas de confiança",
+       x = "Anos", y = "Preço (Log)") +
+  theme_minimal()
+```
+
+## Conclusão
+
+O mercado parece seguir uma certa estabilidade com um leve aumento de preços, de modo a não parecer tão vantajoso para o produtor fazer hedge, no entato, é prudente que o faça, como forma de manter-se seguro.

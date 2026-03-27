@@ -1,0 +1,27 @@
+{
+    "id": "796DCE3B",
+    "path": "/cloud/project/testes.R",
+    "project_path": "testes.R",
+    "type": "r_source",
+    "hash": "375667708",
+    "contents": "",
+    "dirty": false,
+    "created": 1774035601326.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "271,0",
+        "scrollLine": "0"
+    },
+    "folds": "1|1|67|0|\n69|1|121|0|\n123|1|195|0|\n197|1|270|0|\n",
+    "lastKnownWriteTime": 1774042271,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1774042382068,
+    "read_only": false,
+    "read_only_alternatives": []
+}
