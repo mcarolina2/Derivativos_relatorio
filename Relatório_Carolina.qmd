@@ -1,0 +1,603 @@
+---
+title: "Relatório"
+author: "Maria Carolina"
+format: html
+editor: visual
+---
+
+# 
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(purrr)
+library(knitr)
+library(kableExtra)
+library(rbcb)       # Puxar IPCA
+library(mFilter)    # Extração de ciclos (Hodrick-Prescott)
+library(forecast)   # Modelos ARIMA e ETS (Médias)
+library(scales)     # Formatação de eixos
+
+options(scipen = 999999)
+```
+
+### Carregando os Dados
+
+```{r}
+# Função robusta para ler suas planilhas mensais
+ler_mensal <- function(caminho, nome_commodity) {
+  # Lendo o CSV (se for Excel, você pode trocar por readxl::read_excel)
+  df <- read.csv(caminho, header = TRUE, sep = ",", dec = ".", stringsAsFactors = FALSE)
+  
+  # Forçando os nomes exatos das suas colunas
+  colnames(df) <- c("Data", "SPOT", "FUT", "BASE")
+  
+  df <- df %>%
+    mutate(
+      # parse_date_time aceita tanto "dd/mm/yyyy" quanto "mm/yyyy"
+      Data = parse_date_time(Data, orders = c("dmy", "my", "ymd")),
+      AnoMes = floor_date(Data, "month"),
+      
+      # Garantindo que os valores sejam numéricos (trocando vírgula por ponto se houver)
+      SPOT = as.numeric(gsub(",", ".", as.character(SPOT))),
+      FUT  = as.numeric(gsub(",", ".", as.character(FUT))),
+      BASE = as.numeric(gsub(",", ".", as.character(BASE))),
+      
+      Commodity = nome_commodity
+    ) %>%
+    filter(!is.na(Data), !is.na(SPOT)) %>%
+    arrange(Data)
+  
+  return(df)
+}
+
+# Ajuste a extensão (".csv") conforme os seus arquivos reais
+df_milho <- ler_mensal("Milho_Mensal_OFC.csv", "Milho")
+df_boi   <- ler_mensal("Boi_Mensal _OFC.csv", "Boi Gordo")
+
+# Unindo as duas bases
+df_mensal <- bind_rows(df_milho, df_boi) %>%
+  mutate(Commodity = factor(Commodity, levels = c("Milho", "Boi Gordo")))
+```
+
+### DEFLACIONAMENTO (PREÇO NOMINAL VS REAL)
+
+```{r}
+datainic <- min(df_mensal$AnoMes)
+datafim  <- max(df_mensal$AnoMes)
+
+# Captura do IPCA via API do Banco Central
+ipca_raw <- get_series(433, start_date = datainic) 
+df_ipca <- ipca_raw %>%
+  rename(AnoMes = date, ipca_var = `433`) %>%
+  mutate(
+    AnoMes = floor_date(AnoMes, "month"),
+    indice = cumprod(1 + (ipca_var / 100))
+  )
+
+indice_hoje <- tail(df_ipca$indice, 1)
+
+# Unindo e criando a coluna SPOT_Real (Preço Deflacionado)
+df_mensal <- df_mensal %>%
+  left_join(df_ipca %>% select(AnoMes, indice), by = "AnoMes") %>%
+  mutate(
+    SPOT_Real = SPOT * (indice_hoje / indice)
+  )
+
+# --- GRÁFICO ---
+# Preparando os dados no formato longo (pivot_longer) para o ggplot
+df_plot_mensal <- df_mensal %>%
+  select(AnoMes, Commodity, SPOT, SPOT_Real) %>%
+  pivot_longer(cols = c(SPOT, SPOT_Real), 
+               names_to = "Serie", values_to = "Preco")
+
+# Plotando
+ggplot(df_plot_mensal, aes(x = AnoMes, y = Preco, color = Serie)) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c("SPOT" = "red", "SPOT_Real" = "blue"),
+                     labels = c("Nominal (R$ da época)", "Real (Poder de compra atual)")) +
+  facet_wrap(~ Commodity, scales = "free_y", ncol = 1) + # Divide o gráfico por produto
+  labs(title = "Preço SPOT: Nominal vs Real",
+       subtitle = "Deflacionado via IPCA (Série 433 BCB)",
+       x = "Ano", y = "R$") +
+  theme_minimal() +
+  theme(legend.position = "bottom", strip.text = element_text(face = "bold"))
+```
+
+### Comparação
+
+```{r}
+#| warning: false
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(patchwork) # Para empilhar os gráficos
+library(rbcb)
+
+options(scipen=999999)
+
+# ===========================================================
+# 1. DEFLACIONAMENTO (Opcional para a base, mas mantido)
+# ===========================================================
+datainic <- min(df_mensal$AnoMes)
+datafim  <- max(df_mensal$AnoMes)
+
+# Captura do IPCA via API do Banco Central
+ipca_raw <- get_series(433, start_date = datainic) 
+df_ipca <- ipca_raw %>%
+  rename(AnoMes = date, ipca_var = `433`) %>%
+  mutate(
+    AnoMes = floor_date(AnoMes, "month"),
+    indice = cumprod(1 + (ipca_var / 100))
+  )
+
+indice_hoje <- tail(df_ipca$indice, 1)
+
+# Unindo e criando a coluna SPOT_Real (Preço Deflacionado)
+df_mensal <- df_mensal %>%
+  # Esta linha abaixo é a novidade! Ela limpa a coluna caso você rode o script 2x
+  select(-any_of(c("indice", "SPOT_Real"))) %>% 
+  left_join(df_ipca %>% select(AnoMes, indice), by = "AnoMes") %>%
+  mutate(
+    SPOT_Real = SPOT * (indice_hoje / indice)
+  )
+
+# ===========================================================
+# 2. PREPARANDO OS GRÁFICOS (MODELO PATCHWORK)
+# ===========================================================
+
+# Preparando os dados no formato longo apenas para o Gráfico 1 (SPOT vs FUT)
+df_p1 <- df_mensal %>%
+  select(AnoMes, Commodity, SPOT, FUT) %>%
+  pivot_longer(cols = c(SPOT, FUT), names_to = "Serie", values_to = "Preco")
+
+# --- GRÁFICO 1: SPOT VS FUTURO ---
+p1 <- ggplot(df_p1) +
+  geom_line(aes(x = AnoMes, y = Preco, color = Serie, linetype = Serie), linewidth = 1) +
+  scale_color_manual(values = c("SPOT" = "darkgreen", "FUT" = "blue"),
+                     labels = c("FUT" = "Futuro", "SPOT" = "Spot")) +
+  scale_linetype_manual(values = c("SPOT" = "solid", "FUT" = "dashed"),
+                        labels = c("FUT" = "Futuro", "SPOT" = "Spot")) +
+  facet_wrap(~ Commodity, scales = "free_y") +
+  labs(title = "Comparativo de Preços: Spot vs. Futuro",
+       x = NULL, y = "R$", color = "Série", linetype = "Série") +
+  theme_minimal() +
+  theme(legend.position = "top", 
+        axis.text.x = element_blank(), # Esconde o texto do eixo X para grudar no p2
+        strip.text = element_text(face = "bold", size = 12))
+
+# --- GRÁFICO 2: RISCO DE BASE ---
+p2 <- ggplot(df_mensal, aes(x = AnoMes, y = BASE)) +
+  geom_area(fill = "red", alpha = 0.2) +
+  geom_line(color = "red", linewidth = 0.8) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  facet_wrap(~ Commodity, scales = "free_y") +
+  labs(title = "Risco de Base",
+       subtitle = "Cálculo: (Preço Spot - Preço Futuro)",
+       x = "Data", y = "Base (R$)") +
+  theme_minimal() +
+  theme(strip.text = element_blank()) # Remove o título do facet para não repetir
+
+# ===========================================================
+# 3. EMPILHANDO OS GRÁFICOS
+# ===========================================================
+# O operador / do pacote patchwork empilha os gráficos
+p1 / p2
+```
+
+###  ESTATÍSTICA DESCRITIVA
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(tidyr)
+
+# ===========================================================
+# 1. CÁLCULO DAS ESTATÍSTICAS DA BASE
+# ===========================================================
+estatisticas_base <- df_mensal %>%
+  group_by(Commodity) %>%
+  summarise(
+    Media = mean(BASE, na.rm = TRUE),
+    Desvio_Padrao = sd(BASE, na.rm = TRUE),
+    Minimo = min(BASE, na.rm = TRUE),
+    Maximo = max(BASE, na.rm = TRUE),
+    Amplitude = max(BASE, na.rm = TRUE) - min(BASE, na.rm = TRUE),
+    N_Observacoes = n()
+  )
+
+# ===========================================================
+# 2. TRANSPONDO A TABELA
+# ===========================================================
+estatisticas_transposta <- estatisticas_base %>%
+  # Transforma as colunas de estatísticas em linhas
+  pivot_longer(cols = -Commodity, names_to = "Estatistica", values_to = "Valor") %>%
+  # Transforma os nomes das commodities em colunas
+  pivot_wider(names_from = Commodity, values_from = Valor)
+
+# ===========================================================
+# 3. EXIBIR A TABELA FORMATADA
+# ===========================================================
+print("--- Resumo Estatístico do Risco de Base ---")
+# Usamos as.data.frame() para a impressão no console ficar mais limpa (sem os cabeçalhos do tibble)
+print(as.data.frame(estatisticas_transposta))
+```
+
+<div>
+
+O desvio padrão revela a volatilidade média da base, ou seja, o quanto a diferença entre o preço *spot* e o futuro costuma oscilar em torno da sua média. Nos nossos dados, o Milho apresenta uma variação média de R\$ 4,42 (para cima ou para baixo), enquanto o Boi Gordo demonstra um risco significativamente maior, com oscilações médias de R\$ 17,01. Além disso, a análise da série histórica do risco de base nos dá a dimensão dos cenários extremos enfrentados no mercado: para o Milho, a base atingiu picos que foram de R\$ -11,40 a R\$ 9,23. Já no Boi Gordo, essa amplitude foi muito mais elástica, registrando casos extremos que variaram de R\$ -20,03 até R\$ 21,69.
+
+</div>
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(fBasics) # Opcional, caso use alguma função específica de normalidade depois
+library(knitr)
+
+# ===========================================================
+# 1. CRIAÇÃO DO HISTOGRAMA DA BASE
+# ===========================================================
+grafico_hist <- ggplot(df_mensal %>% filter(!is.na(BASE)), aes(x = BASE, fill = Commodity)) +
+  geom_histogram(bins = 30, color = "black", alpha = 0.7) +
+  facet_wrap(~ Commodity, scales = "free", ncol = 2) +
+  # Ajuste as cores conforme sua preferência
+  scale_fill_manual(values = c("Milho" = "steelblue", "Boi Gordo" = "darkgreen")) +
+  labs(title = "Distribuição de Frequência: Risco de Base",
+       x = "Base (Spot - Futuro) em R$", y = "Frequência") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# ===========================================================
+# 2. CRIAÇÃO DO QQ-PLOT DA BASE
+# ===========================================================
+df_qq <- df_mensal %>%
+  filter(!is.na(BASE)) %>%
+  group_by(Commodity) %>%
+  reframe(
+    Esperado = qnorm(ppoints(n())),
+    Observado = sort(BASE)
+  )
+
+grafico_qq <- ggplot(df_qq, aes(x = Esperado, y = Observado)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", linetype = "dashed", se = FALSE) +
+  facet_wrap(~ Commodity, scales = "free", ncol = 2) +
+  labs(title = "QQ-Plot: Aderência à Distribuição Normal (Risco de Base)",
+       x = "Quantis Teóricos", y = "Quantis Observados") +
+  theme_minimal()
+
+# ===========================================================
+# 3. CÁLCULO E TRANSPOSIÇÃO DAS ESTATÍSTICAS
+# ===========================================================
+estatisticas_base <- df_mensal %>%
+  group_by(Commodity) %>%
+  summarise(
+    Media = mean(BASE, na.rm = TRUE),
+    Desvio_Padrao = sd(BASE, na.rm = TRUE),
+    Minimo = min(BASE, na.rm = TRUE),
+    Maximo = max(BASE, na.rm = TRUE),
+    Amplitude = max(BASE, na.rm = TRUE) - min(BASE, na.rm = TRUE),
+    N_Observacoes = n()
+  )
+
+estatisticas_transposta <- estatisticas_base %>%
+  pivot_longer(cols = -Commodity, names_to = "Estatistica", values_to = "Valor") %>%
+  pivot_wider(names_from = Commodity, values_from = Valor)
+
+# ===========================================================
+# 4. EXECUÇÃO DOS PRINTS (GRÁFICOS E TABELA)
+# ===========================================================
+# Exibe o Histograma
+print(grafico_hist)
+
+# Exibe o QQ-Plot
+print(grafico_qq)
+
+# Exibe a Tabela
+print("--- Resumo Estatístico do Risco de Base ---")
+print(as.data.frame(estatisticas_transposta))
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(fBasics)
+library(tseries)
+library(knitr)
+
+# ===========================================================
+# 1. CÁLCULO DA TAXA DE CRESCIMENTO (MoM e YoY)
+# ===========================================================
+df_mensal <- df_mensal %>%
+  group_by(Commodity) %>%
+  arrange(AnoMes) %>%
+  mutate(
+    Cresc_Mensal = (SPOT_Real / lag(SPOT_Real, 1) - 1) * 100,
+    Cresc_Anual  = (SPOT_Real / lag(SPOT_Real, 12) - 1) * 100
+  ) %>%
+  ungroup()
+
+# ===========================================================
+# 2. GRÁFICO: TAXA DE CRESCIMENTO ANUAL
+# ===========================================================
+grafico_cresc <- ggplot(df_mensal %>% filter(!is.na(Cresc_Anual)), aes(x = AnoMes, y = Cresc_Anual, fill = Cresc_Anual > 0)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "darkred")) +
+  facet_wrap(~ Commodity, scales = "free_y") +
+  labs(title = "Taxa de Crescimento Anual (YoY) - Preço SPOT Real",
+       subtitle = "Comparação do mês atual com o mesmo mês do ano anterior",
+       x = "Ano", y = "Crescimento (%)") +
+  theme_minimal()
+
+print(grafico_cresc)
+
+# ===========================================================
+# 3. TESTES DE NORMALIDADE (Jarque-Bera e Shapiro-Wilk)
+# ===========================================================
+# Empilhamos as taxas, removemos os NAs gerados pelo 'lag', e calculamos os p-values
+testes_norm_cresc <- df_mensal %>%
+  select(Commodity, Cresc_Mensal, Cresc_Anual) %>%
+  pivot_longer(cols = c(Cresc_Mensal, Cresc_Anual), names_to = "Taxa", values_to = "Valor") %>%
+  filter(!is.na(Valor)) %>% 
+  group_by(Commodity, Taxa) %>%
+  summarise(
+    JB_p_value = jarqueberaTest(Valor)@test$p.value,
+    Shapiro_p_value = shapiro.test(Valor)$p.value,
+    .groups = "drop"
+  ) %>%
+  # Renomeando para ficar mais bonito na tabela final
+  mutate(Taxa = recode(Taxa, 
+                       "Cresc_Mensal" = "Mensal (MoM)", 
+                       "Cresc_Anual" = "Anual (YoY)")) %>%
+  arrange(Commodity, Taxa)
+
+print("--- Resultados dos Testes de Normalidade: Taxas de Crescimento ---")
+kable(testes_norm_cresc, digits = 4)
+```
+
+### TAXAS DE CRESCIMENTO (MENSAL E ANUAL)
+
+```{r}
+# Cálculo da variação percentual MoM (Mês a Mês) e YoY (Ano a Ano)
+df_mensal <- df_mensal %>%
+  group_by(Commodity) %>%
+  arrange(AnoMes) %>%
+  mutate(
+    Cresc_Mensal = (SPOT_Real / lag(SPOT_Real, 1) - 1) * 100,
+    Cresc_Anual  = (SPOT_Real / lag(SPOT_Real, 12) - 1) * 100
+  ) %>%
+  ungroup()
+
+# Gráfico da Taxa de Crescimento Anual
+ggplot(df_mensal %>% filter(!is.na(Cresc_Anual)), aes(x = AnoMes, y = Cresc_Anual, fill = Cresc_Anual > 0)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "darkred")) +
+  facet_wrap(~ Commodity, scales = "free_y") +
+  labs(title = "Taxa de Crescimento Anual (YoY) - Preço SPOT Real",
+       subtitle = "Comparação do mês atual com o mesmo mês do ano anterior",
+       x = "Ano", y = "Crescimento (%)") +
+  theme_minimal()
+
+```
+
+### DECOMPOSIÇÃO E EXTRAÇÃO DE CICLOS (HODRICK-PRESCOTT)
+
+```{r}
+df_ciclos <- df_mensal %>%
+  group_by(Commodity) %>%
+  filter(!is.na(SPOT_Real)) %>%
+  mutate(
+    # Frequência 14400 é o consenso econométrico para dados MENTAIS
+    Tendencia = as.numeric(hpfilter(SPOT_Real, freq = 14400)$trend),
+    Ciclo     = as.numeric(hpfilter(SPOT_Real, freq = 14400)$cycle)
+  ) %>%
+  ungroup()
+
+# Gráfico do Ciclo Isolado
+ggplot(df_ciclos, aes(x = AnoMes, y = Ciclo)) +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  geom_line(color = "blue", linewidth = 0.8) +
+  geom_smooth(method = "loess", se = FALSE, color = "black", alpha = 0.3) +
+  facet_wrap(~ Commodity, scales = "free_y") +
+  labs(title = "Ciclo Econômico Extraído (Filtro HP)",
+       subtitle = "Valores acima de 0 indicam mercado 'aquecido/sobrecomprado'",
+       x = "Ano", y = "Desvio do Ciclo (R$)") +
+  theme_minimal()
+```
+
+### PREVISÃO 12 MESES: ARIMA VS ETS (MÉDIAS)
+
+```{r}
+rodar_previsoes_comparadas <- function(serie_mensal, h_meses = 12) {
+  
+  # Cria o objeto de Time Series (ts) com frequência 12 (Mensal)
+  ts_data <- ts(serie_mensal, frequency = 12)
+  
+  # Modelo 1: ARIMA
+  mod_arima <- auto.arima(log(ts_data)) 
+  prev_arima <- forecast(mod_arima, h = h_meses)
+  
+  # Modelo 2: ETS (Suavização Exponencial / Médias Ponderadas)
+  mod_ets <- ets(ts_data)
+  prev_ets <- forecast(mod_ets, h = h_meses)
+  
+  # Dataframe de saída
+  data.frame(
+    Mes_Projetado = 1:h_meses,
+    Preco_ARIMA   = exp(as.numeric(prev_arima$mean)),
+    Preco_ETS     = as.numeric(prev_ets$mean)
+  )
+}
+
+df_projecoes <- df_mensal %>%
+  group_by(Commodity) %>%
+  summarise(
+    Ultimo_Mes = max(AnoMes),
+    Projecoes  = list(rodar_previsoes_comparadas(SPOT_Real, h_meses = 12))
+  ) %>%
+  unnest(Projecoes) %>%
+  mutate(Data_Proj = Ultimo_Mes %m+% months(Mes_Projetado))
+
+# Pegando apenas os últimos 36 meses históricos para o gráfico ficar bonito
+df_historico_recente <- df_mensal %>%
+  group_by(Commodity) %>%
+  slice_tail(n = 36) %>%
+  select(Commodity, Data_Proj = AnoMes, Preco_Real = SPOT_Real) %>%
+  mutate(Tipo = "Realizado (Histórico)")
+
+# Pivotando as projeções
+df_proj_long <- df_projecoes %>%
+  select(Commodity, Data_Proj, Preco_ARIMA, Preco_ETS) %>%
+  pivot_longer(cols = c(Preco_ARIMA, Preco_ETS), names_to = "Tipo", values_to = "Preco_Real") %>%
+  mutate(Tipo = recode(Tipo, 
+                       "Preco_ARIMA" = "Projeção: ARIMA", 
+                       "Preco_ETS"   = "Projeção: Médias (ETS)"))
+
+# Juntando histórico e futuro
+df_grafico_final <- bind_rows(df_historico_recente, df_proj_long)
+
+# Gráfico Final
+ggplot(df_grafico_final, aes(x = Data_Proj, y = Preco_Real, color = Tipo, linetype = Tipo)) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c("Realizado (Histórico)" = "black", 
+                                "Projeção: ARIMA"       = "#e74c3c", 
+                                "Projeção: Médias (ETS)" = "#3498db")) +
+  scale_linetype_manual(values = c("Realizado (Histórico)" = "solid", 
+                                   "Projeção: ARIMA"       = "dashed", 
+                                   "Projeção: Médias (ETS)" = "dotdash")) +
+  facet_wrap(~ Commodity, scales = "free_y", ncol = 1) +
+  labs(title = "Previsão de 12 Meses: ARIMA vs ETS (Médias Suavizadas)",
+       subtitle = "Projeções baseadas na série SPOT Real",
+       x = "Ano/Mês", y = "R$ / Saca ou @ (Real)", 
+       color = NULL, linetype = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+# Dados Diários:
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(tidyr)
+library(knitr)
+
+# ===========================================================
+# 1. FUNÇÃO CENTRAL DE CÁLCULO DE HEDGE E RISCO
+# ===========================================================
+calcular_hedge_b3 <- function(arquivo_csv, 
+                              nome_ativo, 
+                              tamanho_contrato, 
+                              taxa_margem = 0.10) {
+  
+  # Leitura do CSV 
+  df <- read.csv(arquivo_csv, stringsAsFactors = FALSE)
+
+  # Padroniza os nomes das colunas para maiúsculo e remove espaços em branco
+  colnames(df) <- toupper(trimws(colnames(df)))
+  
+  # Garantir que estamos pegando apenas os últimos 63 dias úteis (Aprox. 3 meses)
+  df <- tail(df, 63)
+  
+  # Limpeza de dados e cálculo de retornos 
+  df <- df %>%
+    mutate(
+      # Substitui eventuais vírgulas por pontos nos valores e garante que sejam números
+      SPOT = as.numeric(gsub(",", ".", SPOT)),
+      FUT  = as.numeric(gsub(",", ".", FUT)),
+      
+      # Cálculo do retorno logarítmico 
+      ret_spot = log(SPOT / lag(SPOT)),
+      ret_fut  = log(FUT / lag(FUT))
+    ) %>%
+    filter(!is.na(ret_spot) & !is.na(ret_fut)) 
+  
+  # 1. VOLATILIDADE (Anualizada para 252 dias úteis)
+  vol_spot <- sd(df$ret_spot) * sqrt(252)
+  vol_fut  <- sd(df$ret_fut) * sqrt(252)
+  
+  # 2. HEDGE RATIO (Razão Ótima de Cobertura)
+  covariancia <- cov(df$ret_spot, df$ret_fut)
+  variancia   <- var(df$ret_fut)
+  hedge_ratio <- covariancia / variancia
+  
+  # 3. CUSTOS, MARGEM E ALAVANCAGEM (Por 1 Contrato)
+  preco_atual_fut <- tail(df$FUT, 1) # Última cotação
+  
+  valor_nocional_contrato <- tamanho_contrato * preco_atual_fut
+  margem_estimada <- valor_nocional_contrato * taxa_margem
+  alavancagem <- valor_nocional_contrato / margem_estimada
+  
+  # Retornando os resultados formatados (Forçando tudo a ser 'character' para não dar erro no pivot)
+  data.frame(
+    Commodity = nome_ativo,
+    Volatilidade_Spot = paste0(round(vol_spot * 100, 2), "%"),
+    Volatilidade_Fut  = paste0(round(vol_fut * 100, 2), "%"),
+    Hedge_Ratio       = as.character(round(hedge_ratio, 4)),
+    `Valor_Nocional_1_Contrato_R$`  = as.character(round(valor_nocional_contrato, 2)), 
+    `Margem_1_Contrato_R$` = as.character(round(margem_estimada, 2)),     
+    Alavancagem       = paste0(round(alavancagem, 1), "x"),
+    check.names = FALSE 
+  )
+}
+
+# ===========================================================
+# 2. EXECUÇÃO PARA AS DUAS COMMODITIES
+# ===========================================================
+
+# Rodando a função para o Milho
+resultado_milho <- calcular_hedge_b3(
+  arquivo_csv = "Milho_Diario_OFC.csv",
+  nome_ativo = "Milho (CCM)",
+  tamanho_contrato = 450 # 1 contrato de milho B3 = 450 sacas
+)
+
+# Rodando a função para o Boi
+resultado_boi <- calcular_hedge_b3(
+  arquivo_csv = "Boi_Diario_OFC.csv",
+  nome_ativo = "Boi Gordo (BGI)",
+  tamanho_contrato = 330 # 1 contrato de boi B3 = 330 arrobas
+)
+
+# Unindo os resultados
+tabela_hedge <- bind_rows(resultado_milho, resultado_boi)
+
+# ===========================================================
+# 3. EXIBINDO OS RESULTADOS
+# ===========================================================
+cat("\n--- RELATÓRIO DE RISCO E HEDGE (Últimos 3 Meses) ---\n")
+
+# Transpondo a tabela para facilitar a leitura no console
+tabela_transposta <- tabela_hedge %>% 
+  pivot_longer(cols = -Commodity, names_to = "Métrica", values_to = "Valor") %>%
+  pivot_wider(names_from = Commodity, values_from = Valor)
+
+print(as.data.frame(tabela_transposta))
+```
+
+<div>
+
+</div>
+
+O script funcionou como um analista financeiro ágil, avaliando os últimos três meses de preços para calcular o risco e os custos reais de proteção na B3, revelando que, enquanto o mercado físico (**Spot**) se manteve comportado com uma volatilidade próxima a 6,4%, as incertezas financeiras fizeram a Bolsa (**Futuro**) oscilar quase o dobro (entre 11% e 13%). Esse descolamento de comportamento entre os preços nas ruas e nas telas refletiu em um **Hedge Ratio** baixo (0.04 para o milho e 0.14 para o boi), indicando que a estratégia de proteção matemática no momento foge da proporção exata de um para um. Na parte de custos, a tabela mostra que o volume de um contrato cheio na bolsa (**Valor Nocional**) equivale a R\$ 32.818,50 no milho e R\$ 117.153,30 no boi, mas para travar esses preços você precisa depositar apenas uma "caução" (**Margem de Garantia**) de 10% desse valor na corretora, ou seja, cerca de R\$ 3.281 e R\$ 11.715, respectivamente. Essa estrutura gera uma **Alavancagem de 10x**, o que é excelente para blindar grandes volumes da sua produção comprometendo muito pouco do seu capital de giro, desde que se mantenha uma atenção rigorosa aos solavancos diários do mercado.
