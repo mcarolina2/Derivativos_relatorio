@@ -1,0 +1,96 @@
+---
+title: "Teste"
+author: "Maria Carolina"
+format: html
+editor: visual
+---
+
+## Quarto
+
+```{r}
+# =============================================================================
+# 0. SETUP E BIBLIOTECAS
+# =============================================================================
+ 
+options(scipen = 999999)
+options(max.print = 100000)
+ 
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(purrr)
+library(knitr)
+library(kableExtra)
+library(rbcb)        # API Banco Central (IPCA)
+library(mFilter)     # Filtro Hodrick-Prescott
+library(forecast)    # ARIMA e ETS
+library(fBasics)     # Jarque-Bera
+library(tseries)     # Shapiro-Wilk / ADF
+library(urca)        # Testes de raiz unitária
+library(patchwork)   # Empilhar gráficos
+library(scales)
+```
+
+```{r}
+# Paleta de cores por commodity (use em todos os gráficos para consistência visual)
+CORES <- c(
+  "Milho"    = "#E6A817",   # Amarelo milho
+  "Boi Gordo" = "#8B3A3A",  # Vermelho carne
+  "Etanol"   = "#2E7D32"    # Verde etanol
+)
+
+```
+
+```{r}
+# =============================================================================
+# 1. CARREGAMENTO DOS DADOS (AJUSTADO)
+# =============================================================================
+
+ler_mensal <- function(caminho, nome_commodity) {
+  # Lemos como character para evitar que o R tente adivinhar tipos errado antes da limpeza
+  df <- read.csv(caminho, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+  colnames(df) <- c("Data", "SPOT", "FUT", "BASE")
+  
+  df %>%
+    mutate(
+      Data   = parse_date_time(Data, orders = c("dmy", "my", "ymd")),
+      AnoMes = floor_date(Data, "month"),
+      
+      # --- CORREÇÃO PARA MILHAR E DECIMAL ---
+      # 1. Removemos o ponto (separador de milhar)
+      # 2. Trocamos a vírgula pelo ponto (separador decimal)
+      across(c(SPOT, FUT, BASE), ~ {
+        x <- as.character(.x)
+        x <- str_replace_all(x, "\\.", "") # Remove ponto de milhar (ex: 2.132 -> 2132)
+        x <- str_replace_all(x, ",", ".")  # Troca vírgula por ponto (ex: 84,09 -> 84.09)
+        as.numeric(x)
+      }),
+      
+      Commodity = nome_commodity
+    ) %>%
+    filter(!is.na(Data), !is.na(SPOT)) %>%
+    arrange(Data)
+}
+
+# --- LEITURA DOS ARQUIVOS ---
+# A função agora limpa automaticamente o formato "2.132,84" do Etanol
+df_milho <- ler_mensal("Milho_Mensal_OFC.csv", "Milho")
+df_boi   <- ler_mensal("Boi_Mensal _OFC.csv", "Boi Gordo")
+df_etanol <- ler_mensal("Etanol_Mensal_OFC.csv", "Etanol")
+
+# Une as três commodities
+df_mensal <- bind_rows(df_milho, df_boi, df_etanol) %>%
+  mutate(Commodity = factor(Commodity, levels = c("Milho", "Boi Gordo", "Etanol")))
+
+cat(">>> Dados carregados com sucesso!\n")
+cat(">>> Período:", format(min(df_mensal$AnoMes, na.rm = TRUE), "%m/%Y"),
+    "a",           format(max(df_mensal$AnoMes, na.rm = TRUE), "%m/%Y"), "\n")
+cat(">>> Observações por commodity:\n")
+print(table(df_mensal$Commodity))
+
+```
+
+```{r}
+
+```

@@ -21,40 +21,6 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
 </style>
 
 
@@ -68,10 +34,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="Relatório_Carolina_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="Relatório_Carolina_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="Relatório_Carolina_files/libs/bootstrap/bootstrap-1bc8a17f135ab3d594c857e9f48e611b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
-<script src="Relatório_Carolina_files/libs/kePrint-0.0.1/kePrint.js"></script>
-
-<link href="Relatório_Carolina_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
-
 
 
 </head>
@@ -85,6 +47,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Relatório</h1>
+<p class="subtitle lead">Etanol | Milho | Boi Gordo <br> Professor: Sinézio Maia</p>
 </div>
 
 
@@ -107,218 +70,64 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="section" class="level1">
-<h1></h1>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>
-Anexando pacote: 'dplyr'</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Os seguintes objetos são mascarados por 'package:stats':
-
-    filter, lag</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Os seguintes objetos são mascarados por 'package:base':
-
-    intersect, setdiff, setequal, union</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>
-Anexando pacote: 'lubridate'</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Os seguintes objetos são mascarados por 'package:base':
-
-    date, intersect, setdiff, union</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>
-Anexando pacote: 'kableExtra'</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>O seguinte objeto é mascarado por 'package:dplyr':
-
-    group_rows</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rbcb)       <span class="co"># Puxar IPCA</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mFilter)    <span class="co"># Extração de ciclos (Hodrick-Prescott)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: pacote 'mFilter' foi compilado no R versão 4.5.3</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(forecast)   <span class="co"># Modelos ARIMA e ETS (Médias)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: pacote 'forecast' foi compilado no R versão 4.5.3</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)     <span class="co"># Formatação de eixos</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>
-Anexando pacote: 'scales'</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>O seguinte objeto é mascarado por 'package:purrr':
-
-    discard</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">999999</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning in options(scipen = 999999): invalid 'scipen' 999999, used 9999</code></pre>
-</div>
-</div>
-<section id="carga" class="level3">
-<h3 class="anchored" data-anchor-id="carga">Carga</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Função robusta para ler suas planilhas mensais</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>ler_mensal <span class="ot">&lt;-</span> <span class="cf">function</span>(caminho, nome_commodity) {</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Lendo o CSV (se for Excel, você pode trocar por readxl::read_excel)</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(caminho, <span class="at">header =</span> <span class="cn">TRUE</span>, <span class="at">sep =</span> <span class="st">","</span>, <span class="at">dec =</span> <span class="st">"."</span>, <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Forçando os nomes exatos das suas colunas</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Data"</span>, <span class="st">"SPOT"</span>, <span class="st">"FUT"</span>, <span class="st">"BASE"</span>)</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>      <span class="co"># parse_date_time aceita tanto "dd/mm/yyyy" quanto "mm/yyyy"</span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">Data =</span> <span class="fu">parse_date_time</span>(Data, <span class="at">orders =</span> <span class="fu">c</span>(<span class="st">"dmy"</span>, <span class="st">"my"</span>, <span class="st">"ymd"</span>)),</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>      <span class="at">AnoMes =</span> <span class="fu">floor_date</span>(Data, <span class="st">"month"</span>),</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>      </span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Garantindo que os valores sejam numéricos (trocando vírgula por ponto se houver)</span></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">SPOT =</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">","</span>, <span class="st">"."</span>, <span class="fu">as.character</span>(SPOT))),</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">FUT  =</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">","</span>, <span class="st">"."</span>, <span class="fu">as.character</span>(FUT))),</span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">BASE =</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">","</span>, <span class="st">"."</span>, <span class="fu">as.character</span>(BASE))),</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>      </span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>      <span class="at">Commodity =</span> nome_commodity</span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span></span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Data), <span class="sc">!</span><span class="fu">is.na</span>(SPOT)) <span class="sc">%&gt;%</span></span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(Data)</span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(df)</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Ajuste a extensão (".csv") conforme os seus arquivos reais</span></span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>df_milho <span class="ot">&lt;-</span> <span class="fu">ler_mensal</span>(<span class="st">"Milho_Mensal_OFC.csv"</span>, <span class="st">"Milho"</span>)</span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>df_boi   <span class="ot">&lt;-</span> <span class="fu">ler_mensal</span>(<span class="st">"Boi_Mensal _OFC.csv"</span>, <span class="st">"Boi Gordo"</span>)</span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Unindo as duas bases</span></span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>df_mensal <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(df_milho, df_boi) <span class="sc">%&gt;%</span></span>
-<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Commodity =</span> <span class="fu">factor</span>(Commodity, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Milho"</span>, <span class="st">"Boi Gordo"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="instalando-as-bibliotecas-necessárias" class="level3">
+<h3 class="anchored" data-anchor-id="instalando-as-bibliotecas-necessárias">Instalando as bibliotecas necessárias</h3>
+</section>
+<section id="paleta-de-cores-por-commodity" class="level3">
+<h3 class="anchored" data-anchor-id="paleta-de-cores-por-commodity">Paleta de cores por commodity</h3>
+</section>
+<section id="carregando-os-dados" class="level3">
+<h3 class="anchored" data-anchor-id="carregando-os-dados">Carregando os Dados</h3>
+<div>
+<p>Os dados da data,preço spot foram baixados do Cepea e os dados do fut foram baixados do investing.</p>
 </div>
 </section>
 <section id="deflacionamento-preço-nominal-vs-real" class="level3">
 <h3 class="anchored" data-anchor-id="deflacionamento-preço-nominal-vs-real">DEFLACIONAMENTO (PREÇO NOMINAL VS REAL)</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>datainic <span class="ot">&lt;-</span> <span class="fu">min</span>(df_mensal<span class="sc">$</span>AnoMes)</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>datafim  <span class="ot">&lt;-</span> <span class="fu">max</span>(df_mensal<span class="sc">$</span>AnoMes)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Captura do IPCA via API do Banco Central</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>ipca_raw <span class="ot">&lt;-</span> <span class="fu">get_series</span>(<span class="dv">433</span>, <span class="at">start_date =</span> datainic) </span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>df_ipca <span class="ot">&lt;-</span> ipca_raw <span class="sc">%&gt;%</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">AnoMes =</span> date, <span class="at">ipca_var =</span> <span class="st">`</span><span class="at">433</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">AnoMes =</span> <span class="fu">floor_date</span>(AnoMes, <span class="st">"month"</span>),</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">indice =</span> <span class="fu">cumprod</span>(<span class="dv">1</span> <span class="sc">+</span> (ipca_var <span class="sc">/</span> <span class="dv">100</span>))</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>indice_hoje <span class="ot">&lt;-</span> <span class="fu">tail</span>(df_ipca<span class="sc">$</span>indice, <span class="dv">1</span>)</span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Unindo e criando a coluna SPOT_Real (Preço Deflacionado)</span></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>df_mensal <span class="ot">&lt;-</span> df_mensal <span class="sc">%&gt;%</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(df_ipca <span class="sc">%&gt;%</span> <span class="fu">select</span>(AnoMes, indice), <span class="at">by =</span> <span class="st">"AnoMes"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">SPOT_Real =</span> SPOT <span class="sc">*</span> (indice_hoje <span class="sc">/</span> indice)</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div>
+<p>Boi Gordo: Note que em 2021/2022, a linha azul estava no topo (acima de R$ 400). Isso significa que o Boi Gordo estava caro; o poder de compra necessário para comprar um boi naquela época era equivalente a gastar mais de 400 reais hoje, mesmo que o preço “no balcão” (linha vermelha) fosse de uns 320 reais.</p>
+<p>Milho: Segue um padrão parecido. Os picos em 2021 mostram que o milho teve uma alta real fortíssima, pesando muito mais no bolso do produtor/comprador do que o preço nominal sugere.</p>
+<p>Etanol: O gráfico mostra saltos bruscos.</p>
 </div>
-</section>
-<section id="estatística-descritiva" class="level3">
-<h3 class="anchored" data-anchor-id="estatística-descritiva">ESTATÍSTICA DESCRITIVA</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>tabela_descritiva <span class="ot">&lt;-</span> df_mensal <span class="sc">%&gt;%</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Commodity) <span class="sc">%&gt;%</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">N_Meses       =</span> <span class="fu">n</span>(),</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">Media_Nominal =</span> <span class="fu">mean</span>(SPOT, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">Media_Real    =</span> <span class="fu">mean</span>(SPOT_Real, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">SD_Real       =</span> <span class="fu">sd</span>(SPOT_Real, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">CV_Real_Pct   =</span> (SD_Real <span class="sc">/</span> Media_Real) <span class="sc">*</span> <span class="dv">100</span>,</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">Min_Real      =</span> <span class="fu">min</span>(SPOT_Real, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Max_Real      =</span> <span class="fu">max</span>(SPOT_Real, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(tabela_descritiva, <span class="at">digits =</span> <span class="dv">2</span>, <span class="at">caption =</span> <span class="st">"Estatística Descritiva: SPOT Nominal vs Real"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="at">bootstrap_options =</span> <span class="fu">c</span>(<span class="st">"striped"</span>, <span class="st">"hover"</span>), <span class="at">full_width =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<table class="table table-striped table-hover caption-top table-sm small" data-quarto-postprocess="true">
-<caption>Estatística Descritiva: SPOT Nominal vs Real</caption>
-<thead>
-<tr class="header">
-<th style="text-align: left;" data-quarto-table-cell-role="th">Commodity</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">N_Meses</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">Media_Nominal</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">Media_Real</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">SD_Real</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">CV_Real_Pct</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">Min_Real</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">Max_Real</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">Milho</td>
-<td style="text-align: right;">74</td>
-<td style="text-align: right;">73.51</td>
-<td style="text-align: right;">86.29</td>
-<td style="text-align: right;">20.87</td>
-<td style="text-align: right;">24.19</td>
-<td style="text-align: right;">59.70</td>
-<td style="text-align: right;">131.26</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Boi Gordo</td>
-<td style="text-align: right;">75</td>
-<td style="text-align: right;">281.59</td>
-<td style="text-align: right;">327.57</td>
-<td style="text-align: right;">51.59</td>
-<td style="text-align: right;">15.75</td>
-<td style="text-align: right;">237.23</td>
-<td style="text-align: right;">415.30</td>
-</tr>
-</tbody>
-</table>
-
-
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-4-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-4-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
 </div>
 </div>
 </section>
-<section id="taxas-de-crescimento-mensal-e-anual" class="level3">
-<h3 class="anchored" data-anchor-id="taxas-de-crescimento-mensal-e-anual">TAXAS DE CRESCIMENTO (MENSAL E ANUAL)</h3>
+<section id="comparação-spot-vs-futuro-risco-de-base" class="level3">
+<h3 class="anchored" data-anchor-id="comparação-spot-vs-futuro-risco-de-base">COMPARAÇÃO SPOT vs FUTURO + RISCO DE BASE</h3>
+<div>
+<p><strong>Convergência:</strong> Hull explica que, à medida que o contrato futuro se aproxima do seu vencimento, o preço futuro deve convergir para o preço spot. Visualmente, é por isso que as linhas verde e azul “andam juntas” e se cruzam frequentemente.</p>
+<p>o <strong>Risco de Base</strong> surge porque a base não é constante; ela oscila ao longo do tempo:</p>
+<ul>
+<li>Quando um produtor ou indústria faz um <em>hedge</em> (trava de preço) usando contratos futuros, eles correm o risco de que a base no momento de desfazer o <em>hedge</em> seja diferente da base no momento em que o <em>hedge</em> foi iniciado.</li>
+</ul>
+<!-- -->
+<ul>
+<li><p><strong>Fortalecimento da Base :</strong> Quando a base aumenta (o gráfico sobe). Isso favorece quem tem posições de <em>hedge de venda</em> (Short Hedge - ex: o agricultor).</p></li>
+<li><p><strong>Enfraquecimento da Base :</strong> Quando a base diminui ou fica mais negativa (o gráfico desce). Isso favorece quem tem posições de <em>hedge de compra</em> (Long Hedge - ex: a indústria que vai comprar a matéria-prima).</p></li>
+</ul>
+</div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cálculo da variação percentual MoM (Mês a Mês) e YoY (Ano a Ano)</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>df_mensal <span class="ot">&lt;-</span> df_mensal <span class="sc">%&gt;%</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Commodity) <span class="sc">%&gt;%</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(AnoMes) <span class="sc">%&gt;%</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">Cresc_Mensal =</span> (SPOT_Real <span class="sc">/</span> <span class="fu">lag</span>(SPOT_Real, <span class="dv">1</span>) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> <span class="dv">100</span>,</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">Cresc_Anual  =</span> (SPOT_Real <span class="sc">/</span> <span class="fu">lag</span>(SPOT_Real, <span class="dv">12</span>) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> <span class="dv">100</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Gráfico da Taxa de Crescimento Anual</span></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_mensal <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Cresc_Anual)), <span class="fu">aes</span>(<span class="at">x =</span> AnoMes, <span class="at">y =</span> Cresc_Anual, <span class="at">fill =</span> Cresc_Anual <span class="sc">&gt;</span> <span class="dv">0</span>)) <span class="sc">+</span></span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">show.legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"TRUE"</span> <span class="ot">=</span> <span class="st">"darkgreen"</span>, <span class="st">"FALSE"</span> <span class="ot">=</span> <span class="st">"darkred"</span>)) <span class="sc">+</span></span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> Commodity, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Taxa de Crescimento Anual (YoY) - Preço SPOT Real"</span>,</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Comparação do mês atual com o mesmo mês do ano anterior"</span>,</span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Ano"</span>, <span class="at">y =</span> <span class="st">"Crescimento (%)"</span>) <span class="sc">+</span></span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -326,118 +135,577 @@ Anexando pacote: 'scales'</code></pre>
 </figure>
 </div>
 </div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
 </div>
-</section>
-<section id="decomposição-e-extração-de-ciclos-hodrick-prescott" class="level3">
-<h3 class="anchored" data-anchor-id="decomposição-e-extração-de-ciclos-hodrick-prescott">DECOMPOSIÇÃO E EXTRAÇÃO DE CICLOS (HODRICK-PRESCOTT)</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>df_ciclos <span class="ot">&lt;-</span> df_mensal <span class="sc">%&gt;%</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Commodity) <span class="sc">%&gt;%</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(SPOT_Real)) <span class="sc">%&gt;%</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Frequência 14400 é o consenso econométrico para dados MENTAIS</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">Tendencia =</span> <span class="fu">as.numeric</span>(<span class="fu">hpfilter</span>(SPOT_Real, <span class="at">freq =</span> <span class="dv">14400</span>)<span class="sc">$</span>trend),</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">Ciclo     =</span> <span class="fu">as.numeric</span>(<span class="fu">hpfilter</span>(SPOT_Real, <span class="at">freq =</span> <span class="dv">14400</span>)<span class="sc">$</span>cycle)</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Gráfico do Ciclo Isolado</span></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_ciclos, <span class="fu">aes</span>(<span class="at">x =</span> AnoMes, <span class="at">y =</span> Ciclo)) <span class="sc">+</span></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"blue"</span>, <span class="at">linewidth =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> Commodity, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Ciclo Econômico Extraído (Filtro HP)"</span>,</span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Valores acima de 0 indicam mercado 'aquecido/sobrecomprado'"</span>,</span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Ano"</span>, <span class="at">y =</span> <span class="st">"Desvio do Ciclo (R$)"</span>) <span class="sc">+</span></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
 </div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-5-3.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 </section>
-<section id="previsão-12-meses-arima-vs-ets-médias" class="level3">
-<h3 class="anchored" data-anchor-id="previsão-12-meses-arima-vs-ets-médias">PREVISÃO 12 MESES: ARIMA VS ETS (MÉDIAS)</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>rodar_previsoes_comparadas <span class="ot">&lt;-</span> <span class="cf">function</span>(serie_mensal, <span class="at">h_meses =</span> <span class="dv">12</span>) {</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Cria o objeto de Time Series (ts) com frequência 12 (Mensal)</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  ts_data <span class="ot">&lt;-</span> <span class="fu">ts</span>(serie_mensal, <span class="at">frequency =</span> <span class="dv">12</span>)</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Modelo 1: ARIMA</span></span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  mod_arima <span class="ot">&lt;-</span> <span class="fu">auto.arima</span>(<span class="fu">log</span>(ts_data)) </span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  prev_arima <span class="ot">&lt;-</span> <span class="fu">forecast</span>(mod_arima, <span class="at">h =</span> h_meses)</span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Modelo 2: ETS (Suavização Exponencial / Médias Ponderadas)</span></span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  mod_ets <span class="ot">&lt;-</span> <span class="fu">ets</span>(ts_data)</span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>  prev_ets <span class="ot">&lt;-</span> <span class="fu">forecast</span>(mod_ets, <span class="at">h =</span> h_meses)</span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Dataframe de saída</span></span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">Mes_Projetado =</span> <span class="dv">1</span><span class="sc">:</span>h_meses,</span>
-<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Preco_ARIMA   =</span> <span class="fu">exp</span>(<span class="fu">as.numeric</span>(prev_arima<span class="sc">$</span>mean)),</span>
-<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">Preco_ETS     =</span> <span class="fu">as.numeric</span>(prev_ets<span class="sc">$</span>mean)</span>
-<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>df_projecoes <span class="ot">&lt;-</span> df_mensal <span class="sc">%&gt;%</span></span>
-<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Commodity) <span class="sc">%&gt;%</span></span>
-<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">Ultimo_Mes =</span> <span class="fu">max</span>(AnoMes),</span>
-<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">Projecoes  =</span> <span class="fu">list</span>(<span class="fu">rodar_previsoes_comparadas</span>(SPOT_Real, <span class="at">h_meses =</span> <span class="dv">12</span>))</span>
-<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(Projecoes) <span class="sc">%&gt;%</span></span>
-<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Data_Proj =</span> Ultimo_Mes <span class="sc">%m+%</span> <span class="fu">months</span>(Mes_Projetado))</span>
-<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Pegando apenas os últimos 36 meses históricos para o gráfico ficar bonito</span></span>
-<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>df_historico_recente <span class="ot">&lt;-</span> df_mensal <span class="sc">%&gt;%</span></span>
-<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Commodity) <span class="sc">%&gt;%</span></span>
-<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_tail</span>(<span class="at">n =</span> <span class="dv">36</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Commodity, <span class="at">Data_Proj =</span> AnoMes, <span class="at">Preco_Real =</span> SPOT_Real) <span class="sc">%&gt;%</span></span>
-<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Tipo =</span> <span class="st">"Realizado (Histórico)"</span>)</span>
-<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Pivotando as projeções</span></span>
-<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a>df_proj_long <span class="ot">&lt;-</span> df_projecoes <span class="sc">%&gt;%</span></span>
-<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Commodity, Data_Proj, Preco_ARIMA, Preco_ETS) <span class="sc">%&gt;%</span></span>
-<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(Preco_ARIMA, Preco_ETS), <span class="at">names_to =</span> <span class="st">"Tipo"</span>, <span class="at">values_to =</span> <span class="st">"Preco_Real"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Tipo =</span> <span class="fu">recode</span>(Tipo, </span>
-<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"Preco_ARIMA"</span> <span class="ot">=</span> <span class="st">"Projeção: ARIMA"</span>, </span>
-<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"Preco_ETS"</span>   <span class="ot">=</span> <span class="st">"Projeção: Médias (ETS)"</span>))</span>
-<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a><span class="co"># Juntando histórico e futuro</span></span>
-<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a>df_grafico_final <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(df_historico_recente, df_proj_long)</span>
-<span id="cb26-48"><a href="#cb26-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-49"><a href="#cb26-49" aria-hidden="true" tabindex="-1"></a><span class="co"># Gráfico Final</span></span>
-<span id="cb26-50"><a href="#cb26-50" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_grafico_final, <span class="fu">aes</span>(<span class="at">x =</span> Data_Proj, <span class="at">y =</span> Preco_Real, <span class="at">color =</span> Tipo, <span class="at">linetype =</span> Tipo)) <span class="sc">+</span></span>
-<span id="cb26-51"><a href="#cb26-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb26-52"><a href="#cb26-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Realizado (Histórico)"</span> <span class="ot">=</span> <span class="st">"black"</span>, </span>
-<span id="cb26-53"><a href="#cb26-53" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Projeção: ARIMA"</span>       <span class="ot">=</span> <span class="st">"#e74c3c"</span>, </span>
-<span id="cb26-54"><a href="#cb26-54" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Projeção: Médias (ETS)"</span> <span class="ot">=</span> <span class="st">"#3498db"</span>)) <span class="sc">+</span></span>
-<span id="cb26-55"><a href="#cb26-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_linetype_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Realizado (Histórico)"</span> <span class="ot">=</span> <span class="st">"solid"</span>, </span>
-<span id="cb26-56"><a href="#cb26-56" aria-hidden="true" tabindex="-1"></a>                                   <span class="st">"Projeção: ARIMA"</span>       <span class="ot">=</span> <span class="st">"dashed"</span>, </span>
-<span id="cb26-57"><a href="#cb26-57" aria-hidden="true" tabindex="-1"></a>                                   <span class="st">"Projeção: Médias (ETS)"</span> <span class="ot">=</span> <span class="st">"dotdash"</span>)) <span class="sc">+</span></span>
-<span id="cb26-58"><a href="#cb26-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> Commodity, <span class="at">scales =</span> <span class="st">"free_y"</span>, <span class="at">ncol =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb26-59"><a href="#cb26-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Previsão de 12 Meses: ARIMA vs ETS (Médias Suavizadas)"</span>,</span>
-<span id="cb26-60"><a href="#cb26-60" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Projeções baseadas na série SPOT Real"</span>,</span>
-<span id="cb26-61"><a href="#cb26-61" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Ano/Mês"</span>, <span class="at">y =</span> <span class="st">"R$ / Saca ou @ (Real)"</span>, </span>
-<span id="cb26-62"><a href="#cb26-62" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="cn">NULL</span>, <span class="at">linetype =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb26-63"><a href="#cb26-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb26-64"><a href="#cb26-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
-(`geom_line()`).</code></pre>
+<section id="estatísticas-da-base-tabela-por-commodity" class="level3">
+<h3 class="anchored" data-anchor-id="estatísticas-da-base-tabela-por-commodity">ESTATÍSTICAS DA BASE (tabela por commodity)</h3>
+<div>
+<section id="milho" class="level4">
+<h4 class="anchored" data-anchor-id="milho">Milho</h4>
+<blockquote class="blockquote">
+<p>“O desvio padrão revela o quanto o preço spot e o futuro podem se diferenciar em média (no caso, <strong>R$ 4,42</strong> para cima ou para baixo), já o gráfico do risco de base, que é a diferença do preço spot para o preço futuro, nos dá um insight serial histórico, incluindo os casos extremos (<strong>R$ -9,23</strong> para baixo ou <strong>R$ 11,40</strong> para cima).”</p>
+</blockquote>
+</section>
+<section id="boi-gordo" class="level4">
+<h4 class="anchored" data-anchor-id="boi-gordo">Boi Gordo</h4>
+<blockquote class="blockquote">
+<p>“O desvio padrão revela o quanto o preço spot e o futuro podem se diferenciar em média (no caso, <strong>R$ 7,01</strong> para cima ou para baixo), já o gráfico do risco de base, que é a diferença do preço spot para o preço futuro, nos dá um insight serial histórico, incluindo os casos extremos (<strong>R$ -21,69</strong> para baixo ou <strong>R$ 20,03</strong> para cima).”</p>
+</blockquote>
+</section>
+<section id="etanol" class="level4">
+<h4 class="anchored" data-anchor-id="etanol">Etanol</h4>
+<blockquote class="blockquote">
+<p>“O desvio padrão revela o quanto o preço spot e o futuro podem se diferenciar em média (no caso, <strong>R$ 107,19</strong> para cima ou para baixo), já o gráfico do risco de base, que é a diferença do preço spot para o preço futuro, nos dá um insight serial histórico, incluindo os casos extremos (<strong>R$ -311,00</strong> para baixo ou <strong>R$ 378,36</strong> para cima).”</p>
+</blockquote>
+</section>
 </div>
+<blockquote class="blockquote">
+<blockquote class="blockquote">
+<blockquote class="blockquote">
+<p>ESTATÍSTICAS — Commodity: Milho —</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<table class="caption-top table">
+<caption>Estatistica da Base — Milho</caption>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Media</th>
+<th style="text-align: right;">Desvio_Padrao</th>
+<th style="text-align: right;">Minimo</th>
+<th style="text-align: right;">Maximo</th>
+<th style="text-align: right;">Amplitude</th>
+<th style="text-align: right;">N_Observacoes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">-0.54</td>
+<td style="text-align: right;">4.42</td>
+<td style="text-align: right;">-9.23</td>
+<td style="text-align: right;">11.4</td>
+<td style="text-align: right;">20.63</td>
+<td style="text-align: right;">74</td>
+</tr>
+</tbody>
+</table>
+<p>— Commodity: Boi Gordo —</p>
+<table class="caption-top table">
+<caption>Estatistica da Base — Boi Gordo</caption>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Media</th>
+<th style="text-align: right;">Desvio_Padrao</th>
+<th style="text-align: right;">Minimo</th>
+<th style="text-align: right;">Maximo</th>
+<th style="text-align: right;">Amplitude</th>
+<th style="text-align: right;">N_Observacoes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">-1.47</td>
+<td style="text-align: right;">7.01</td>
+<td style="text-align: right;">-21.69</td>
+<td style="text-align: right;">20.03</td>
+<td style="text-align: right;">41.72</td>
+<td style="text-align: right;">75</td>
+</tr>
+</tbody>
+</table>
+<p>— Commodity: Etanol —</p>
+<table class="caption-top table">
+<caption>Estatistica da Base — Etanol</caption>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Media</th>
+<th style="text-align: right;">Desvio_Padrao</th>
+<th style="text-align: right;">Minimo</th>
+<th style="text-align: right;">Maximo</th>
+<th style="text-align: right;">Amplitude</th>
+<th style="text-align: right;">N_Observacoes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">-2.77</td>
+<td style="text-align: right;">107.19</td>
+<td style="text-align: right;">-311</td>
+<td style="text-align: right;">378.3</td>
+<td style="text-align: right;">689.3</td>
+<td style="text-align: right;">75</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="histograma-qq-plot-da-base-separados-por-commodity" class="level3">
+<h3 class="anchored" data-anchor-id="histograma-qq-plot-da-base-separados-por-commodity">HISTOGRAMA + QQ-PLOT DA BASE (separados por commodity)</h3>
+<div>
+<p>O Histograma (O desenho da montanha): Ele agrupa os valores da Base para ver qual o valor mais comum. Se o desenho parecer um sino perfeito, o mercado é previsível. Se a “montanha” estiver torta, o mercado tem vício de cair ou subir mais para um lado.</p>
+<p>O QQ-Plot (O teste da linha reta): Ele compara os seus dados com um modelo matemático perfeito (uma linha reta).</p>
+<p>Pontos na linha: Tudo normal, sem surpresas.</p>
+<p>Pontos fugindo da linha (em forma de S): Cuidado! Existem “cisnes negros” ou eventos extremos que acontecem mais do que deveriam.</p>
+<section id="milho-ccm" class="level4">
+<h4 class="anchored" data-anchor-id="milho-ccm">Milho (CCM)</h4>
+<p>O histograma do milho apresenta uma distribuição <strong>assimétrica negativa</strong> (cauda alongada para a esquerda). Isso indica que o mercado tende a operar em situação em que o preço futuro supera o spot — com episódios pontuais de base fortemente negativa puxando a cauda esquerda. O QQ-Plot confirma esse diagnóstico: os pontos seguem razoavelmente a reta de referência no intervalo central, mas se afastam nas extremidades, especialmente na cauda superior direita, indicando caudas mais pesadas do que uma distribuição normal preveria. Do ponto de vista de Hull, isso tem implicação direta na eficácia do hedge. O autor define o <strong>risco de base</strong> como a diferença <code>b = S − F</code>, e adverte que sua variabilidade é o principal limitador de um hedge perfeito. Uma distribuição assimétrica da base significa que o hedger enfrenta <strong>perdas</strong> : a proteção funciona bem na maioria dos meses, mas eventos de base muito negativa (cauda esquerda) podem gerar perdas inesperadas na posição hedgeada que não foram capturadas pelo hedge ratio calculado com a média histórica.</p>
+</section>
+<section id="boi-gordo-bgi" class="level4">
+<h4 class="anchored" data-anchor-id="boi-gordo-bgi">Boi Gordo (BGI)</h4>
+<p>O histograma do boi gordo mostra uma distribuição com <strong>assimetria negativa mais forte</strong> que a do milho, O histograma é mais “espalhado”, refletindo o maior desvio padrão da série. O QQ-Plot : os pontos aderem bem à reta no intervalo −1 a +1 dos quantis teóricos, mas nas extremidades há desvios em ambas as caudas, configurando uma distribuição <strong>com caudas pesadas bilaterais</strong> .Em Hull, quando os retornos têm caudas mais pesadas do que a normal, o VaR calculado sob a premissa de normalidade <strong>subestima sistematicamente</strong> as perdas potenciais. Para o produtor ou frigorífico que usa contratos BGI como hedge, esses eventos extremos de base representam o chamado o risco residual que permanece mesmo após a montagem de uma posição hedgeada tecnicamente correta.</p>
+</section>
+<section id="etanol-1" class="level4">
+<h4 class="anchored" data-anchor-id="etanol-1">Etanol</h4>
+<p>o histograma do etanol é bastante achatada e espalhada com valores extremos Isso indica uma volatilidade muito maior da base em comparação com grãos ou boi. A forma não é um sino perfeito: há uma cauda longa para a direita (valores positivos extremos) e também uma cauda moderada para a esquerda. Na maior parte do tempo o preço spot e o futuro andam próximos, mas eventos raros causam disparadas do spot muito acima do futuro (base positiva enorme) ou, menos frequentemente, o contrário. o QQ-Plot grudam bem na reta apenas na região central. Nas pontas, principalmente na cauda superior direita, eles disparam para longe da reta.</p>
+</section>
+</div>
+<div class="cell">
 <div class="cell-output-display">
 <div>
 <figure class="figure">
 <p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-7-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-7-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-7-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-7-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-7-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="taxas-de-crescimento-mom-e-yoy-do-spot-real" class="level3">
+<h3 class="anchored" data-anchor-id="taxas-de-crescimento-mom-e-yoy-do-spot-real">TAXAS DE CRESCIMENTO (MoM e YoY) do SPOT REAL</h3>
+<div>
+<ul>
+<li><p><strong>O Cálculo(</strong>Cresc_Anual = (SPOT_Real / lag(SPOT_Real, 12) - 1) * 100<strong>) :</strong> A fórmula usada nos gráficos compara o preço de um mês com o <strong>mesmo mês do ano anterior</strong> (por exemplo, compara janeiro de 2024 com janeiro de 2023). Fazemos isso para evitar comparações injustas, como comparar o preço na época de colheita com a época de escassez (entressafra).</p></li>
+<li><p><strong>Barras Verdes:</strong> O produto ficou mais caro em relação ao ano passado. Mostra que o mercado valorizou e o produtor ganhou poder de compra.</p></li>
+<li><p><strong>Barras Vermelhas:</strong> O produto ficou mais barato em relação ao ano passado. Mostra que o mercado desvalorizou.</p></li>
+</ul>
+<section id="milho-e-boi-gordo" class="level4">
+<h4 class="anchored" data-anchor-id="milho-e-boi-gordo">Milho e Boi Gordo:</h4>
+<ul>
+<li><p><strong>(Comportamento Parecido):</strong> Os dois vivem de “altos e baixos” semelhantes. Eles tiveram uma alta forte nos preços antes de 2022, mas depois enfrentaram uma queda longa até 2024. Começaram a dar sinais de melhora recentemente, mas o milho já voltou a apontar para baixo agora em 2026.</p>
+<h4 id="etanol-2" class="anchored">Etanol</h4></li>
+<li><p>É o mais instável. O preço do etanol deu um salto gigante antes de 2022, mas logo depois a situação virou e ele passou quase três anos seguidos ficando mais barato. Porém, no final do período analisado (chegando em 2026), o preço voltou a disparar com força.</p></li>
+</ul>
+</section>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-8-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-8-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="testes-de-normalidade-taxas-de-crescimento" class="level3">
+<h3 class="anchored" data-anchor-id="testes-de-normalidade-taxas-de-crescimento">TESTES DE NORMALIDADE — Taxas de Crescimento</h3>
+<div>
+<p>Ambos os testes (Jarque-Bera (JB) e Shapiro-Wilk) Ambos verificam se os dados seguem uma distribuição normal.</p>
+<p>Os testes de normalidade indicam que as taxas de crescimento mensais (MoM) apresentam comportamento mais próximo da distribuição normal para as commodities milho e boi gordo, enquanto o etanol não apresenta normalidade em nenhuma das frequências analisadas. Já as taxas anuais (YoY) tendem a não seguir distribuição normal, com exceção parcial do boi gordo, que apresentou resultados divergentes entre os testes. De forma geral, os resultados sugerem cautela na aplicação de métodos paramétricos, especialmente para o etanol e para as variações anuais.</p>
+</div>
+</section>
+<section id="decomposição-aditiva-e-multiplicativa-por-commodity" class="level3">
+<h3 class="anchored" data-anchor-id="decomposição-aditiva-e-multiplicativa-por-commodity">DECOMPOSIÇÃO ADITIVA E MULTIPLICATIVA (por commodity)</h3>
+<div>
+<p>Foi realizada a decomposição das séries temporais dos preços das commodities utilizando modelos aditivo e multiplicativo. A análise permitiu identificar os componentes de tendência, sazonalidade e ruído ao longo do tempo. A decomposição aditiva foi aplicada a todas as séries, enquanto a multiplicativa foi utilizada apenas quando os dados apresentaram valores estritamente positivos. De forma geral, essa abordagem possibilita compreender melhor o comportamento temporal dos preços e identificar padrões sazonais relevantes para a análise econômica.</p>
+<p>A decomposição das séries temporais revelou que todas as commodities apresentam tendência e padrões sazonais bem definidos ao longo do tempo. O milho e o boi gordo exibem comportamento mais estável, com sazonalidade constante, sendo adequadamente representados por um modelo aditivo. Já o etanol apresentou variações proporcionais ao nível da série, indicando melhor ajuste ao modelo multiplicativo, além de maior volatilidade. De forma geral, os resultados evidenciam a presença de ciclos de mercado e efeitos sazonais relevantes para a análise dos preços.</p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-10-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-10-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-10-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-10-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-10-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="filtro-de-hodrick-prescott-tendência-e-ciclo-por-commodity" class="level3">
+<h3 class="anchored" data-anchor-id="filtro-de-hodrick-prescott-tendência-e-ciclo-por-commodity">FILTRO DE HODRICK-PRESCOTT (tendência e ciclo por commodity)</h3>
+<div>
+<p>Filtro de Hodrick-Prescott — O que o filtro faz: O Filtro HP separa a série de preços em dois componentes:</p>
+<ul>
+<li><p>Tendência: a trajetória suave de longo prazo, é a “direção estrutural” do mercado Ciclo: o quanto o preço está acima ou abaixo dessa tendência em cada momento</p></li>
+<li><p>O parâmetro λ = 14.400 é o valor padrão para dados mensais na literatura econométrica. Quanto maior o λ, mais suave e “reta” fica a tendência; o valor 14.400 é o consenso para capturar movimentos estruturais de longo prazo sem reagir a choques temporários. Como ler o gráfico do ciclo:</p></li>
+<li><p>Ciclo &gt; 0 (acima da linha vermelha): o preço está acima da tendência estrutural → mercado aquecido, sobrecomprado Ciclo &lt; 0 (abaixo da linha vermelha): o preço está abaixo da tendência → mercado frio, subprecificado A curva preta (LOESS) é uma suavização do próprio ciclo, revelando se ele está num movimento de alta ou baixa no período recente</p></li>
+</ul>
+<p>Milho :</p>
+<ul>
+<li>O ciclo do milho evidencia três fases bem distintas no período. Entre 2020 e meados de 2021, o mercado operou abaixo da tendência (ciclo negativo), reflexo dos preços ainda deprimidos no início da pandemia. O pico de 2022 acima da tendência, corresponde ao choque de oferta global pós-pandemia e à guerra na Ucrânia, que empurraram os preços. A partir de 2023, o ciclo mergulhou , indicando que o mercado corrigiu em excesso e os preços ficaram abaixo do que a tendência justificaria. Em 2025–2026, o ciclo voltou a cruzar a linha zero e está em trajetória de alta, sinalizado pela curva LOESS preta ascendente — o que é consistente com a decisão de hedge de venda pelo produtor: o preço está se recuperando e vale travar.</li>
+</ul>
+<p>Boi Gordo:</p>
+<ul>
+<li>O ciclo do boi gordo é o mais amplo dos três, Com a amplitude muito maior que a do milho, refletindo a maior volatilidade estrutural dessa commodity. O mercado passou por um ciclo completo e claro: sobrecompra pronunciada entre 2020 e 2022, seguida por uma correção profunda até 2024. Isso indica que o boi gordo está entrando em uma nova fase de aquecimento, o que reforça tanto a estratégia de hedge de venda para o pecuarista quanto a atenção do frigorífico que precisa travar seu custo de compra.</li>
+</ul>
+<p>Etanol :</p>
+<ul>
+<li>O gráfico do etanol é o mais irregular dos três, com ciclos de curtíssima duração e amplitudes extremas .Esses picos são frutos de eventos que elevam o preço muito acima da tendência por poucos meses e depois se dissipam rapidamente. O período 2023–2025 ficou predominantemente com ciclo negativo, indicando que o mercado operou abaixo da tendência estrutural por dois anos consecutivos. Em 2026, um novo pico positivo aparece — e a curva LOESS está virada para cima, sugerindo que o etanol pode estar iniciando mais um ciclo de aquecimento. Para a usina que compra milho como insumo, este sinal combinado com o ciclo ascendente do próprio milho torna o long hedge no CCM ainda mais urgente: os custos de insumo e as receitas de produto podem subir simultaneamente, mas o timing de cada um é diferente, e o hedge garante que a margem não será destruída no intervalo.</li>
+</ul>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-11-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-11-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-11-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-11-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-11-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="previsão-12-meses-arima-vs-ets-médias-suavizadas" class="level3">
+<h3 class="anchored" data-anchor-id="previsão-12-meses-arima-vs-ets-médias-suavizadas">PREVISÃO 12 MESES: ARIMA vs ETS (Médias Suavizadas)</h3>
+<div>
+<p>Milho — projeção fev/2027: R$ 67,61/saca (ARIMA) | R$ 67,86/saca (ETS) Os dois modelos são praticamente idênticos na projeção central, o que é um sinal de alta consistência: independentemente do método, o milho deve permanecer na faixa de R$ 67–68/saca em termos reais daqui a 12 meses. Isso representa uma ligeira queda em relação ao nível atual de aproximadamente R$ 70/saca, sugerindo estabilidade com leve pressão baixista no poder de compra. A banda do ARIMA (R$ 35 a R$ 129) é expressivamente mais larga que a do ETS (R$ 36 a R$ 100), refletindo que o modelo paramétrico captura mais incerteza estrutural da série. Para o produtor, a convergência dos dois modelos em torno de R$ 68 reforça o cenário do Boletim Conab: preços sem grandes altas reais previstas, o que torna o momento atual relativamente favorável para travar o preço via hedge, antes de qualquer deterioração.</p>
+<p>Boi Gordo — projeção fev/2027: R$ 342,25/@ (ARIMA) | R$ 342,25/@ (ETS) A coincidência entre ARIMA e ETS — ambos projetando exatamente R$ 342,25/@ — é incomum e indica que a série apresenta um padrão muito bem definido que ambos os modelos capturam da mesma forma. Visualmente, as projeções são uma extensão horizontal do nível atual, sugerindo que os modelos interpretam o mercado como estruturalmente estabilizado nesse patamar. A banda de confiança do ARIMA (R$ 241 a R$ 485) é consideravelmente mais larga que a do ETS (R$ 228 a R$ 456), mas ambas são assimétricas para cima — o limite superior está mais distante da projeção central do que o inferior, o que reflete a assimetria positiva histórica do boi gordo que identificamos nos histogramas. Combinado com o ciclo HP em trajetória ascendente, o boi gordo apresenta um quadro em que a projeção central é de estabilidade, mas com risco de alta mais pronunciado que risco de baixa — argumento adicional para que pecuaristas utilizem o hedge como proteção de margem.</p>
+<p>Etanol — projeção fev/2027: R$ 26.355,88/m³ (ARIMA) | R$ 31.040,75/m³ (ETS) Este é o caso com a maior divergência entre modelos dos três analisados, e também o de maior incerteza . O ARIMA projeta R$ 26.355/m³ enquanto o ETS aponta R$ 31.040/m³ — uma diferença de quase R$ 4.700/m³ entre os dois modelos, o equivalente a mais de 15% de divergência. Essa discrepância reflete diretamente o comportamento errático da série do etanol que os histogramas e o ciclo HP já haviam evidenciado: os choques de curto prazo são tão intensos que os dois modelos interpretam a tendência de maneiras distintas. A banda de confiança do ARIMA vai de R$ 16.829 a R$ 41.274, e a do ETS de R$ 9.980 a R$ 52.101 — amplitudes que praticamente impossibilitam uma previsão precisa para fins de planejamento operacional.</p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-12-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-12-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="análise-diária-de-contratos-futuros-milho-boi-gordo-e-etanol" class="level1">
+<h1>ANÁLISE DIÁRIA DE CONTRATOS FUTUROS: MILHO, BOI GORDO E ETANOL:</h1>
+<div>
+
+</div>
+<section id="setup-e-bibliotecas" class="level3">
+<h3 class="anchored" data-anchor-id="setup-e-bibliotecas">SETUP E BIBLIOTECAS</h3>
+</section>
+<section id="função-central-de-cálculo" class="level3">
+<h3 class="anchored" data-anchor-id="função-central-de-cálculo">FUNÇÃO CENTRAL DE CÁLCULO</h3>
+<div>
+<p>O relatório revela um cenário desafiador para o hedge linear no período Jan–Mar/2026: <strong>hedge ratios baixos nas três commodities</strong> indicam que os mercados físico e futuro operaram de forma dessincronizada, reduzindo a eficácia protetora dos contratos. O etanol combina o melhor hedge ratio dos três com o maior risco de liquidez, enquanto o milho combina o pior hedge ratio com o menor requisito de capital. Em todos os casos, a recomendação de Hull é clara: hedge ratios abaixo de 0,5 justificam a avaliação de <strong>estratégias complementares com opções</strong>, que protegem contra movimentos adversos sem depender da correlação spot-futuro para funcionar.</p>
+<p>A função calcular_hedge_b3() recebe os dados diários de cada commodity e devolve seis indicadores de risco e operação para os últimos 63 dias úteis (janeiro a março de 2026). Abaixo, cada métrica explicada do ponto de vista conceitual e prático, seguida do comentário sobre os resultados.</p>
+<p>Volatilidade do Spot e do Futuro O que é: o desvio padrão dos retornos logarítmicos diários, multiplicado por √252 para anualizar. Representa o quanto o preço oscila em média ao longo de um ano. Como é calculado: rvol_spot &lt;- sd(df$ret_spot) * sqrt(252) O retorno logarítmico log(P_t / P_{t-1}) mede a variação percentual diária de forma simétrica. O fator √252 converte a volatilidade diária para a escala anual, seguindo a convenção de mercado de 252 pregões por ano.</p>
+<p>Hedge Ratio (Razão Ótima de Cobertura) O que é: quantos contratos futuros são necessários para proteger cada unidade de exposição no mercado físico.</p>
+<p>Valor Nocional: o valor total do ativo controlado por 1 contrato. É o tamanho do contrato multiplicado pelo último preço futuro.</p>
+<p>Margem: o depósito de garantia exigido pela B3 para manter a posição aberta. Não é o custo do contrato — é uma caução devolvida ao encerrar a posição.</p>
+<p>Alavancagem: quantas vezes o valor nocional supera a margem.</p>
+</div>
+</section>
+<section id="execução-para-as-três-commodities" class="level3">
+<h3 class="anchored" data-anchor-id="execução-para-as-três-commodities">EXECUÇÃO PARA AS TRÊS COMMODITIES</h3>
+<div>
+
+</div>
+</section>
+<section id="tabela-resumo-transposta-todas-as-commodities-lado-a-lado" class="level3">
+<h3 class="anchored" data-anchor-id="tabela-resumo-transposta-todas-as-commodities-lado-a-lado">TABELA-RESUMO TRANSPOSTA (todas as commodities lado a lado)</h3>
+<div>
+
+</div>
+</section>
+<section id="gráfico-volatilidade-rolante-janela-de-21-dias-úteis-1-mês" class="level3">
+<h3 class="anchored" data-anchor-id="gráfico-volatilidade-rolante-janela-de-21-dias-úteis-1-mês">GRÁFICO — Volatilidade Rolante (janela de 21 dias úteis ≈ 1 mês)</h3>
+<div>
+<p>Em vez de um único número de volatilidade para todo o período, a volatilidade rolante recalcula o desvio padrão a cada dia, usando sempre os 21 pregões anteriores como janela. O resultado é uma curva que mostra como o risco evoluiu ao longo do tempo, revelando períodos de calmaria e de estresse.</p>
+<p>Milho (CCM) O gráfico revela uma tendência clara de queda contínua da volatilidade do futuro ao longo do trimestre.</p>
+<p>Boi Gordo (BGI) A volatilidade do futuro se manteve estável</p>
+<p>Etanol (ETH) O etanol apresenta o comportamento estresse generalizado no mercado do etanol</p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-18-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-18-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-retornos-logarítmicos-diários" class="level3">
+<h3 class="anchored" data-anchor-id="gráfico-retornos-logarítmicos-diários">GRÁFICO — Retornos Logarítmicos Diários</h3>
+<div>
+<p>Cada barra representa a variação percentual do preço em um único pregão em relação ao dia anterior</p>
+<p>Milho (CCM) O painel do futuro é mais agitado que o do spot</p>
+<p>Boi Gordo (BGI) O boi gordo apresenta um comportamento mais equilibrado entre futuro e spot</p>
+<p>Etanol (ETH) O etanol é o único dos três em que os dois painéis parecem semelhantes</p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-19-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-19-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-histograma-dos-retornos-com-curva-normal" class="level3">
+<h3 class="anchored" data-anchor-id="gráfico-histograma-dos-retornos-com-curva-normal">GRÁFICO — Histograma dos Retornos com Curva Normal</h3>
+<div>
+<p>O histograma exibe com que frequência os retornos diários caíram em cada faixa de variação percentual.</p>
+<p>Milho (CCM) O futuro apresenta uma distribuição assimétrica positiva Isso indica que no período predominaram pequenas altas diárias no contrato futuro, mas com alguns dias de queda mais acentuada puxando a cauda esquerda.</p>
+<p>Boi Gordo (BGI) O futuro do boi gordo é o mais próximo de uma distribuição normal ,refletindo os movimentos abruptos de alta identificados nos retornos diários.</p>
+<p>Etanol (ETH) O etanol apresenta o padrão mais simétrico e próximo da normal, spot também mostra boa aderência à curva, com distribuição aproximadamente simétrica em torno de zero</p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-20-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-20-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-série-diária-spot-vs-futuro-risco-de-base-empilhado" class="level3">
+<h3 class="anchored" data-anchor-id="gráfico-série-diária-spot-vs-futuro-risco-de-base-empilhado">GRÁFICO — Série Diária: Spot vs Futuro + Risco de Base (empilhado)</h3>
+<div>
+<p>O painel superior traça a trajetória diária dos dois preços no mesmo eixo: a linha sólida é o spot (preço físico imediato) e a tracejada é o futuro (preço acordado para entrega futura). Quando as linhas se afastam, o mercado está mais tensionado; quando convergem, spot e futuro estão em equilíbrio. O painel inferior mostra a base dia a dia:</p>
+<p>Base = Spot − Futuro</p>
+<p>Base negativa (área vermelha abaixo de zero): futuro mais caro que o spot → mercado em contango, situação normal que reflete custos de carregamento (armazenagem, seguro, financiamento) Base positiva (área acima de zero): spot mais caro que o futuro → mercado em backwardation, sinal de escassez imediata ou pressão de demanda no físico</p>
+<p>A oscilação da base ao longo do tempo é o próprio risco de base: quanto mais irregular a área vermelha, maior o risco residual que o hedge não consegue eliminar.</p>
+<p>Milho (CCM) O gráfico superior mostra que o futuro ficou consistentemente acima do spot durante quase todo o período.</p>
+<p>Boi Gordo (BGI) O boi gordo apresenta o comportamento dinâmico</p>
+<p>tanol (ETH) O etanol apresenta o maior valor absoluto de base</p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-21-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-21-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-evolução-da-margem-estimada-por-contrato" class="level3">
+<h3 class="anchored" data-anchor-id="gráfico-evolução-da-margem-estimada-por-contrato">GRÁFICO — Evolução da Margem Estimada por Contrato</h3>
+<div>
+<p>A margem de garantia é calculada diariamente como:</p>
+<p>Margem = Preço Futuro × Tamanho do Contrato × 10%</p>
+<p>Como o preço futuro muda todo pregão, a margem exigida também muda. O gráfico mostra essa variação dia a dia — respondendo à pergunta prática: quanto capital precisei ter imobilizado em cada dia para manter 1 contrato aberto? A área preenchida parte do mínimo histórico do período até o valor do dia, tornando visualmente imediato quando a exigência de capital subiu ou caiu em relação ao piso do trimestre.</p>
+<p>Milho (CCM) A margem do milho seguiu uma tendência de alta gradual e consistente durante todo o trimestre.</p>
+<p>Boi Gordo (BGI) O boi gordo foi a commodity com a mudança mais brusca no período. A margem ficou estável em janeiro e apresentou uma forte alta no início de fevereiro em poucos dias.</p>
+<p>Etanol (ETH) O etanol , a margem caiu ao longo do período</p>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-22-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Relatório_Carolina_files/figure-html/unnamed-chunk-22-3.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
